@@ -9,7 +9,10 @@ public class PlayerAnimation {
     private Animation<TextureRegion> walkLeftAnimation;
     private Animation<TextureRegion> walkRightAnimation;
     private Animation<TextureRegion> idleAnimation;
-    private Animation<TextureRegion> jumpAnimation;
+    private Animation<TextureRegion> jumpAnimation;         // Salto hacia la derecha
+    private Animation<TextureRegion> jumpLeftAnimation;     // Salto hacia la izquierda
+    private Animation<TextureRegion> doubleJumpAnimation;    // Doble salto hacia la derecha
+    private Animation<TextureRegion> doubleJumpLeftAnimation; // Doble salto hacia la izquierda
     private float stateTime;
 
     public PlayerAnimation() {
@@ -18,12 +21,18 @@ public class PlayerAnimation {
         Texture walkSheetRight = new Texture("run_right.png");
         Texture idleSheet = new Texture("Idle.png");
         Texture jumpSheet = new Texture("Jump.png");
+        Texture jumpLeftSheet = new Texture("Jump_Left.png"); // Cargar la textura para el salto hacia la izquierda
+        Texture doubleJumpSheet = new Texture("Jump.png");
+        Texture doubleJumpLeftSheet = new Texture("Jump_Left.png"); // Cargar la textura para el doble salto hacia la izquierda
 
-        // Dividir en frames y crear animaciones (asume que cada frame es de 128x128 píxeles)
-        walkLeftAnimation = createAnimationFromSheet(walkSheetLeft, 128, 128, 0.1f);
-        walkRightAnimation = createAnimationFromSheet(walkSheetRight, 128, 128, 0.1f);
-        idleAnimation = createAnimationFromSheet(idleSheet, 128, 128, 0.1f);
-        jumpAnimation = createAnimationFromSheet(jumpSheet, 128, 128, 0.1f);
+        // Dividir en frames y crear animaciones
+        walkLeftAnimation = createAnimationFromSheet(walkSheetLeft, 32, 32, 0.1f);
+        walkRightAnimation = createAnimationFromSheet(walkSheetRight, 32, 32, 0.1f);
+        idleAnimation = createAnimationFromSheet(idleSheet, 32, 32, 0.1f);
+        jumpAnimation = createAnimationFromSheet(jumpSheet, 32, 32, 0.1f);
+        jumpLeftAnimation = createAnimationFromSheet(jumpLeftSheet, 32, 32, 0.1f);
+        doubleJumpAnimation = createAnimationFromSheet(doubleJumpSheet, 32, 32, 0.1f);
+        doubleJumpLeftAnimation = createAnimationFromSheet(doubleJumpLeftSheet, 32, 32, 0.1f); // Nueva animación de doble salto hacia la izquierda
 
         stateTime = 0f;
     }
@@ -44,11 +53,23 @@ public class PlayerAnimation {
         return new Animation<>(frameDuration, frames, Animation.PlayMode.LOOP);
     }
 
-    public TextureRegion getCurrentFrame(boolean movingLeft, boolean movingRight, boolean isJumping) {
+    public TextureRegion getCurrentFrame(boolean movingLeft, boolean movingRight, boolean isJumping, boolean isDoubleJumping) {
         stateTime += com.badlogic.gdx.Gdx.graphics.getDeltaTime();
 
-        if (isJumping) {
-            return jumpAnimation.getKeyFrame(stateTime, true);
+        if (isDoubleJumping) {
+            // Verificar la dirección del movimiento para seleccionar la animación correcta
+            if (movingLeft) {
+                return doubleJumpLeftAnimation.getKeyFrame(stateTime, true); // Doble salto hacia la izquierda
+            } else {
+                return doubleJumpAnimation.getKeyFrame(stateTime, true); // Doble salto hacia la derecha
+            }
+        } else if (isJumping) {
+            // Verificar la dirección del movimiento para seleccionar la animación correcta
+            if (movingLeft) {
+                return jumpLeftAnimation.getKeyFrame(stateTime, true); // Salto hacia la izquierda
+            } else {
+                return jumpAnimation.getKeyFrame(stateTime, true); // Salto hacia la derecha
+            }
         } else if (movingLeft) {
             return walkLeftAnimation.getKeyFrame(stateTime, true);
         } else if (movingRight) {
