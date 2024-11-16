@@ -9,30 +9,44 @@ public class PlayerAnimation {
     private Animation<TextureRegion> walkLeftAnimation;
     private Animation<TextureRegion> walkRightAnimation;
     private Animation<TextureRegion> idleAnimation;
-    private Animation<TextureRegion> jumpAnimation;         // Salto hacia la derecha
-    private Animation<TextureRegion> jumpLeftAnimation;     // Salto hacia la izquierda
-    private Animation<TextureRegion> doubleJumpAnimation;    // Doble salto hacia la derecha
-    private Animation<TextureRegion> doubleJumpLeftAnimation; // Doble salto hacia la izquierda
+    private Animation<TextureRegion> jumpAnimation;
+    private Animation<TextureRegion> jumpLeftAnimation;
+    private Animation<TextureRegion> doubleJumpAnimation;
+    private Animation<TextureRegion> doubleJumpLeftAnimation;
+    private Animation<TextureRegion> hurtAnimation;
+
+    // Texturas utilizadas para crear las animaciones
+    private Texture walkSheetLeft;
+    private Texture walkSheetRight;
+    private Texture idleSheet;
+    private Texture jumpSheet;
+    private Texture jumpLeftSheet;
+    private Texture doubleJumpSheet;
+    private Texture doubleJumpLeftSheet;
+    private Texture hurtSheet;
+
     private float stateTime;
 
     public PlayerAnimation() {
-        // Cargar sprites o texturas para cada animación
-        Texture walkSheetLeft = new Texture("run_left.png");
-        Texture walkSheetRight = new Texture("run_right.png");
-        Texture idleSheet = new Texture("Idle.png");
-        Texture jumpSheet = new Texture("Jump.png");
-        Texture jumpLeftSheet = new Texture("Jump_Left.png"); // Cargar la textura para el salto hacia la izquierda
-        Texture doubleJumpSheet = new Texture("Jump.png");
-        Texture doubleJumpLeftSheet = new Texture("Jump_Left.png"); // Cargar la textura para el doble salto hacia la izquierda
+        // Cargar texturas
+        walkSheetLeft = new Texture("run_left.png");
+        walkSheetRight = new Texture("run_right.png");
+        idleSheet = new Texture("Idle.png");
+        jumpSheet = new Texture("Jump.png");
+        jumpLeftSheet = new Texture("Jump_Left.png");
+        doubleJumpSheet = new Texture("Jump.png");
+        doubleJumpLeftSheet = new Texture("Jump_Left.png");
+        hurtSheet = new Texture("hurt.png");
 
-        // Dividir en frames y crear animaciones
+        // Crear animaciones a partir de las texturas
         walkLeftAnimation = createAnimationFromSheet(walkSheetLeft, 32, 32, 0.1f);
         walkRightAnimation = createAnimationFromSheet(walkSheetRight, 32, 32, 0.1f);
         idleAnimation = createAnimationFromSheet(idleSheet, 32, 32, 0.1f);
         jumpAnimation = createAnimationFromSheet(jumpSheet, 32, 32, 0.1f);
         jumpLeftAnimation = createAnimationFromSheet(jumpLeftSheet, 32, 32, 0.1f);
         doubleJumpAnimation = createAnimationFromSheet(doubleJumpSheet, 32, 32, 0.1f);
-        doubleJumpLeftAnimation = createAnimationFromSheet(doubleJumpLeftSheet, 32, 32, 0.1f); // Nueva animación de doble salto hacia la izquierda
+        doubleJumpLeftAnimation = createAnimationFromSheet(doubleJumpLeftSheet, 32, 32, 0.1f);
+        hurtAnimation = createAnimationFromSheet(hurtSheet, 32, 32, 0.1f);
 
         stateTime = 0f;
     }
@@ -57,18 +71,16 @@ public class PlayerAnimation {
         stateTime += com.badlogic.gdx.Gdx.graphics.getDeltaTime();
 
         if (isDoubleJumping) {
-            // Verificar la dirección del movimiento para seleccionar la animación correcta
             if (movingLeft) {
-                return doubleJumpLeftAnimation.getKeyFrame(stateTime, true); // Doble salto hacia la izquierda
+                return doubleJumpLeftAnimation.getKeyFrame(stateTime, true);
             } else {
-                return doubleJumpAnimation.getKeyFrame(stateTime, true); // Doble salto hacia la derecha
+                return doubleJumpAnimation.getKeyFrame(stateTime, true);
             }
         } else if (isJumping) {
-            // Verificar la dirección del movimiento para seleccionar la animación correcta
             if (movingLeft) {
-                return jumpLeftAnimation.getKeyFrame(stateTime, true); // Salto hacia la izquierda
+                return jumpLeftAnimation.getKeyFrame(stateTime, true);
             } else {
-                return jumpAnimation.getKeyFrame(stateTime, true); // Salto hacia la derecha
+                return jumpAnimation.getKeyFrame(stateTime, true);
             }
         } else if (movingLeft) {
             return walkLeftAnimation.getKeyFrame(stateTime, true);
@@ -77,5 +89,27 @@ public class PlayerAnimation {
         } else {
             return idleAnimation.getKeyFrame(stateTime, true);
         }
+    }
+
+    public TextureRegion getHurtFrame() {
+        stateTime += com.badlogic.gdx.Gdx.graphics.getDeltaTime();
+        return hurtAnimation.getKeyFrame(stateTime, true);
+    }
+
+    public TextureRegion getIdleFrame() {
+        stateTime += com.badlogic.gdx.Gdx.graphics.getDeltaTime();
+        return idleAnimation.getKeyFrame(stateTime, true);
+    }
+
+    // Liberar todos los recursos de textura
+    public void dispose() {
+        if (walkSheetLeft != null) walkSheetLeft.dispose();
+        if (walkSheetRight != null) walkSheetRight.dispose();
+        if (idleSheet != null) idleSheet.dispose();
+        if (jumpSheet != null) jumpSheet.dispose();
+        if (jumpLeftSheet != null) jumpLeftSheet.dispose();
+        if (doubleJumpSheet != null) doubleJumpSheet.dispose();
+        if (doubleJumpLeftSheet != null) doubleJumpLeftSheet.dispose();
+        if (hurtSheet != null) hurtSheet.dispose();
     }
 }

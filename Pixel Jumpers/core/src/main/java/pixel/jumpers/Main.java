@@ -3,22 +3,21 @@ package pixel.jumpers;
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
+import com.badlogic.gdx.math.MathUtils;
+import com.badlogic.gdx.math.Rectangle;
+import com.badlogic.gdx.utils.Array;
 
 public class Main extends ApplicationAdapter {
     private SpriteBatch batch;
-    private Vector2 playerPosition;
-    private Vector2 playerVelocity;
-    private boolean isJumping;
-    private boolean isDoubleJumping;
-    private PlayerAnimation playerAnimation;
     private OrthographicCamera camera;
     private Viewport viewport;
     private final int VIRTUAL_WIDTH = 1280;
@@ -27,6 +26,52 @@ public class Main extends ApplicationAdapter {
     private Texture fullBackgroundTexture;
     private float backgroundX;
 
+    private Array<Platform> platforms;
+    private Texture platformTexture;
+
+    private Array<Enemy> enemies;
+    private Texture enemyTexture;
+
+    private Player player;
+    private boolean showHitboxes;
+    
+    // Posiciones originales de los objetos
+    private final float PLAYER_START_X = 100;
+    private final float PLAYER_START_Y = 100;
+    
+    private final float[] PLATFORM_START_X = {300, 600, 900};
+    private final float[] PLATFORM_START_Y = {150, 250, 350};
+    
+    // Diferentes posiciones de spawn para los enemigos
+    private final float ENEMY_1_START_X = 150;
+    private final float ENEMY_1_START_Y = 50;
+    
+    private final float ENEMY_2_START_X = 400;
+    private final float ENEMY_2_START_Y = 50;
+    
+    // Mostrar la barra de vida
+    private void drawHealthBar(SpriteBatch batch) {
+        ShapeRenderer shapeRenderer = new ShapeRenderer();
+        shapeRenderer.setProjectionMatrix(camera.combined);
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+
+        // Posición de la barra relativa a la cámara
+        float healthBarX = camera.position.x - VIRTUAL_WIDTH / 2f + 20;  // 20 píxeles desde el borde izquierdo
+        float healthBarY = camera.position.y + VIRTUAL_HEIGHT / 2f - 40; // 40 píxeles desde el borde superior
+
+        // Dibujar la barra de fondo (gris)
+        shapeRenderer.setColor(Color.GRAY);
+        shapeRenderer.rect(healthBarX, healthBarY, 200, 20);  // Barra más ancha
+
+        // Dibujar la barra de vida (verde), ajustada según la salud
+        shapeRenderer.setColor(Color.GREEN);
+        shapeRenderer.rect(healthBarX, healthBarY, player.getHealth() * 2, 20);  // Ajustar longitud según vida
+
+        shapeRenderer.end();
+        shapeRenderer.dispose();
+    }
+
+    
     @Override
     public void create() {
         batch = new SpriteBatch();
@@ -37,15 +82,21 @@ public class Main extends ApplicationAdapter {
         camera.position.set(VIRTUAL_WIDTH / 2f, VIRTUAL_HEIGHT / 2f, 0);
         camera.update();
 
-        playerPosition = new Vector2(100, 100);
-        playerVelocity = new Vector2(0, 0);
-        isJumping = false;
-        isDoubleJumping = false;
-        
-        playerAnimation = new PlayerAnimation();
+        player = new Player(100, 100);
 
-        fullBackgroundTexture = new Texture("full_background.png");
+        fullBackgroundTexture = new Texture("full_background_grey.png");
         backgroundX = 0;
+
+        platformTexture = new Texture("platform.png");
+        platforms = new Array<>();
+        platforms.add(new Platform(platformTexture, 300, 150, 100, 20));
+        platforms.add(new Platform(platformTexture, 600, 250, 100, 20));
+        platforms.add(new Platform(platformTexture, 900, 350, 100, 20));
+
+        enemyTexture = new Texture("enemy.png");
+        enemies = new Array<>();
+        enemies.add(new Enemy(enemyTexture, 100, 50, 50, 50, 100, 200, 700));
+        enemies.add(new Enemy(enemyTexture, 100, 50, 50, 50, -120, 1200, 1900));
     }
 
     @Override
@@ -55,87 +106,91 @@ public class Main extends ApplicationAdapter {
 
     @Override
     public void render() {
-        // Limpiar pantalla y actualizar la cámara
+        // Limpiar la pantalla y actualizar la cámara
         Gdx.gl.glClearColor(0, 0, 0, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
-        camera.update();
-        batch.setProjectionMatrix(camera.combined);
-
-        // Lógica de movimiento del jugador
-        boolean movingLeft = Gdx.input.isKeyPressed(Input.Keys.A);
-        boolean movingRight = Gdx.input.isKeyPressed(Input.Keys.D);
-
-        if (movingLeft) {
-            playerPosition.x -= 200 * Gdx.graphics.getDeltaTime();
-        }
-        if (movingRight) {
-            playerPosition.x += 200 * Gdx.graphics.getDeltaTime();
+        
+        // Detectar si la tecla 'r' es presionada para reiniciar el nivel
+        if (Gdx.input.isKeyJustPressed(Input.Keys.R)) {
+            resetLevel();
         }
 
-        // Control del salto y salto doble
-        if (Gdx.input.isKeyJustPressed(Input.Keys.W)) {
-            if (!isJumping) {
-                playerVelocity.y = 300;
-                isJumping = true;
-            } else if (!isDoubleJumping) { // Permitir el doble salto
-                playerVelocity.y = 300;     // Reinicia la velocidad en Y para el doble salto
-                isDoubleJumping = true;     // Activa el estado de doble salto
+        // Actualizar lógica del jugador
+        player.update(Gdx.graphics.getDeltaTime(), camera, platforms, enemies);
+
+        // Actualizar lógica de los enemigos
+        for (Enemy enemy : enemies) {
+            enemy.update(Gdx.graphics.getDeltaTime());
+        }
+
+        // Remover enemigos muertos
+        for (int i = enemies.size - 1; i >= 0; i--) {
+            if (enemies.get(i).getHealth() <= 0) {
+                enemies.removeIndex(i);
             }
         }
 
-        // Aplicar gravedad
-        playerVelocity.y -= 10;
-        playerPosition.add(0, playerVelocity.y * Gdx.graphics.getDeltaTime());
+        // Actualizar la posición de la cámara para que siga al jugador
+        float playerCenterX = player.getX() + player.getWidth() / 2f;
+        camera.position.x = Math.max(playerCenterX, VIRTUAL_WIDTH / 2f);
 
-        int groundLevel = 50;
-        if (playerPosition.y <= groundLevel) {
-            playerPosition.y = groundLevel;
-            playerVelocity.y = 0;
-            isJumping = false;
-            isDoubleJumping = false; // Restablece el doble salto al tocar el suelo
-        }
+        // Limitar la cámara para que no salga del fondo
+        float backgroundWidth = fullBackgroundTexture.getWidth();
+        float minCameraX = VIRTUAL_WIDTH / 2f;
+        float maxCameraX = backgroundWidth - VIRTUAL_WIDTH / 2f;
+        camera.position.x = MathUtils.clamp(camera.position.x, minCameraX, maxCameraX);
 
-        // Evitar que el jugador se salga del borde izquierdo de la pantalla
-        if (playerPosition.x < 0) {
-            playerPosition.x = 0;
-        }
-
-        // Hacer que la cámara siga al jugador
-        camera.position.x = playerPosition.x + 32; // Ajuste para centrar al personaje
-        if (camera.position.x < VIRTUAL_WIDTH / 2f) {
-            camera.position.x = VIRTUAL_WIDTH / 2f;
-        }
         camera.update();
 
-        // Dibujar el fondo infinito
+        // Configurar la proyección y comenzar a dibujar
+        batch.setProjectionMatrix(camera.combined);
         batch.begin();
+
+        // Dibujar el fondo infinito
         float cameraLeftEdge = camera.position.x - VIRTUAL_WIDTH / 2f;
-        float backgroundWidth = fullBackgroundTexture.getWidth();
-
-        // Calcular la posición de inicio del fondo usando el desplazamiento modular
         float startX = cameraLeftEdge - (cameraLeftEdge % backgroundWidth);
-
-        // Dibujar el fondo repetido para cubrir el ancho de la pantalla
         for (float x = startX; x < cameraLeftEdge + VIRTUAL_WIDTH; x += backgroundWidth) {
             batch.draw(fullBackgroundTexture, x, 0, backgroundWidth, VIRTUAL_HEIGHT);
         }
-        batch.end();
 
-        // Dibujar al personaje
-        TextureRegion currentFrame = playerAnimation.getCurrentFrame(movingLeft, movingRight, isJumping, isDoubleJumping);
-        float characterWidth = 64;
-        float characterHeight = 64;
+        // Dibujar al jugador y otros elementos
+        player.draw(batch);
+        for (Platform platform : platforms) {
+            platform.draw(batch);
+        }
+        for (Enemy enemy : enemies) {
+            enemy.draw(batch);
+        }
 
-        batch.begin();
-        batch.draw(currentFrame, playerPosition.x, playerPosition.y, characterWidth, characterHeight);
+        // Dibujar la barra de vida
         batch.end();
+        drawHealthBar(batch); // `drawHealthBar` usa un `ShapeRenderer` separado
     }
-
 
 
     @Override
     public void dispose() {
         batch.dispose();
         fullBackgroundTexture.dispose();
+        enemyTexture.dispose();
+        player.dispose();
+    }
+    
+    // Método para reiniciar el nivel
+    private void resetLevel() {
+        // Reiniciar jugador
+        player = new Player(PLAYER_START_X, PLAYER_START_Y);
+        player.reset();
+
+        // Reiniciar plataformas
+        platforms.clear();
+        for (int i = 0; i < PLATFORM_START_X.length; i++) {
+            platforms.add(new Platform(platformTexture, PLATFORM_START_X[i], PLATFORM_START_Y[i], 100, 20));
+        }
+
+        // Reiniciar enemigos con sus posiciones específicas
+        enemies.clear();
+        enemies.add(new Enemy(enemyTexture, ENEMY_1_START_X, ENEMY_1_START_Y, 50, 50, 100, 200, 700));
+        enemies.add(new Enemy(enemyTexture, ENEMY_2_START_X, ENEMY_2_START_Y, 50, 50, -120, 1200, 1900));
     }
 }
