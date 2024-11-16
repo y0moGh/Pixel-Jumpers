@@ -123,12 +123,13 @@ public class Main extends ApplicationAdapter {
             enemy.update(Gdx.graphics.getDeltaTime());
         }
 
-        // Remover enemigos muertos
+        // Remover enemigos cuya animación de muerte haya terminado
         for (int i = enemies.size - 1; i >= 0; i--) {
-            if (enemies.get(i).getHealth() <= 0) {
+            if (enemies.get(i).isReadyToRemove()) {
                 enemies.removeIndex(i);
             }
         }
+
 
         // Actualizar la posición de la cámara para que siga al jugador
         float playerCenterX = player.getX() + player.getWidth() / 2f;

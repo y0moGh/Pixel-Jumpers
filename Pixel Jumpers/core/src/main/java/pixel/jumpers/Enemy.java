@@ -13,13 +13,18 @@ public class Enemy {
 
     private Rectangle bounds;
     private EnemyAnimation enemyAnimation;
-
+    
+    private int health;
     private boolean isHurt; // Nuevo estado para daño
     private float hurtTimer;
     private final float HURT_DURATION = 0.5f; // Duración del estado de daño
+    private float deathTimer; // Temporizador para la animación de muerte
+    private final float DEATH_DURATION = 1.0f; // Duración de la animación de muerte
 
-    private int health;
+    // Modificar el estado de la muerte
+    private boolean isDead; // Indicador de si el enemigo está muerto
 
+    // Actualizamos el constructor
     public Enemy(Texture texture, float x, float y, float width, float height, float speed, float minX, float maxX) {
         this.x = x;
         this.y = y;
@@ -36,9 +41,21 @@ public class Enemy {
         this.isHurt = false;
         this.hurtTimer = 0;
         this.health = 100; // Vida inicial del enemigo
+
+        this.isDead = false; // Inicialmente no está muerto
+        this.deathTimer = 0; // Inicializamos el temporizador de muerte
     }
 
     public void update(float deltaTime) {
+    	if (isDead) {
+    	    deathTimer += deltaTime;
+    	    if (deathTimer >= DEATH_DURATION) {
+    	        // Aquí no hacemos nada; la eliminación la maneja el `Main`
+    	        return;
+    	    }
+    	    return;
+    	}
+
         if (isHurt) {
             hurtTimer -= deltaTime;
             if (hurtTimer <= 0) {
@@ -61,6 +78,7 @@ public class Enemy {
         bounds.setPosition(x, y);
     }
 
+
     private void reverseDirection() {
         speed = -speed; // Cambia la dirección de la velocidad
         movingLeft = speed < 0; // Actualiza la dirección del movimiento
@@ -68,22 +86,40 @@ public class Enemy {
 
     public void draw(SpriteBatch batch) {
         boolean movingRight = !movingLeft;
-        batch.draw(enemyAnimation.getCurrentFrame(movingLeft, movingRight, isHurt), x, y, width, height);
+
+        if (isDead) {
+            // Mostrar la animación de muerte
+            batch.draw(enemyAnimation.getCurrentFrame(movingLeft, movingRight, isHurt, isDead), x, y, width, height);
+        } else {
+            // Si no está muerto, mostramos las animaciones normales (caminar, estar herido, etc.)
+            batch.draw(enemyAnimation.getCurrentFrame(movingLeft, movingRight, isHurt, isDead), x, y, width, height);
+        }
     }
+
+
 
     public Rectangle getBounds() {
         return bounds;
     }
 
     public void takeDamage(int damage) {
+        if (isDead) return; // Si ya está muerto, no hacer nada
+
         health -= damage;
         if (health <= 0) {
             health = 0;
+            isDead = true; // Marcar como muerto
+            deathTimer = 0; // Reiniciar el temporizador de muerte
         } else {
             isHurt = true;
             hurtTimer = HURT_DURATION;
         }
     }
+
+    public boolean isReadyToRemove() {
+        return isDead && deathTimer >= DEATH_DURATION; // Listo para eliminar después de la animación de muerte
+    }
+
 
     public int getHealth() {
         return health;

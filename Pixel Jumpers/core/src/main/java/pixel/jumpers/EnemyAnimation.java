@@ -10,6 +10,7 @@ public class EnemyAnimation {
     private Animation<TextureRegion> walkRightAnimation;
     private Animation<TextureRegion> idleAnimation;
     private Animation<TextureRegion> hurtAnimation; // Nueva animación para estado de daño
+    private Animation<TextureRegion> deathAnimation; // Nueva animación para muerte
     private float stateTime;
 
     public EnemyAnimation() {
@@ -17,13 +18,15 @@ public class EnemyAnimation {
         Texture walkSheetLeft = new Texture("enemy_run_left.png");
         Texture walkSheetRight = new Texture("enemy_run_right.png");
         Texture idleSheet = new Texture("enemy_idle.png");
-        Texture hurtSheet = new Texture("enemy_hurt.png"); // Nueva textura para daño
+        Texture hurtSheet = new Texture("enemy_hurt.png");
+        Texture deathSheet = new Texture("enemy_death.png"); // Nueva textura para muerte
 
         // Dividir las hojas de sprites en frames y crear las animaciones
         walkLeftAnimation = createAnimationFromSheet(walkSheetLeft, 32, 32, 0.1f);
         walkRightAnimation = createAnimationFromSheet(walkSheetRight, 32, 32, 0.1f);
         idleAnimation = createAnimationFromSheet(idleSheet, 32, 32, 0.1f);
-        hurtAnimation = createAnimationFromSheet(hurtSheet, 32, 32, 0.1f); // Animación para daño
+        hurtAnimation = createAnimationFromSheet(hurtSheet, 32, 32, 0.1f);
+        deathAnimation = createAnimationFromSheet(deathSheet, 32, 32, 0.1f); // Animación para muerte
 
         stateTime = 0f;
     }
@@ -44,10 +47,12 @@ public class EnemyAnimation {
         return new Animation<>(frameDuration, frames, Animation.PlayMode.LOOP);
     }
 
-    public TextureRegion getCurrentFrame(boolean movingLeft, boolean movingRight, boolean isHurt) {
+    public TextureRegion getCurrentFrame(boolean movingLeft, boolean movingRight, boolean isHurt, boolean isDead) {
         stateTime += com.badlogic.gdx.Gdx.graphics.getDeltaTime();
 
-        if (isHurt) {
+        if (isDead) {
+            return deathAnimation.getKeyFrame(stateTime, false); // No repetir la animación
+        } else if (isHurt) {
             return hurtAnimation.getKeyFrame(stateTime, true);
         } else if (movingLeft) {
             return walkLeftAnimation.getKeyFrame(stateTime, true);
