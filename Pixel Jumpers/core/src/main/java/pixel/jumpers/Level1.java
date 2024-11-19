@@ -2,102 +2,108 @@ package pixel.jumpers;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
-import com.badlogic.gdx.graphics.GL20;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.math.MathUtils;
-import com.badlogic.gdx.utils.Array;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
 
 public class Level1 extends BaseLevel {
-    private Player player;
-    private Array<Platform> platforms;
-    private Array<Enemy> enemies;
-    private Texture platformTexture;
-    private Texture enemyTexture;
+	// Inicializacion de las posiciones iniciales de los objetos
+    private final float PLAYER_START_X = 0;
+    private final float PLAYER_START_Y = 0;
 
-    private final float PLAYER_START_X = 100;
-    private final float PLAYER_START_Y = 100;
+    private final float[] PLATFORM_START_X = {
+    	    200, 300, 600, 900, 1200, 1500, 1700, 2000, 2100
+    	};
+    	private final float[] PLATFORM_START_Y = {
+    	    100, 150, 200, 250, 300, 200, 150, 250, 100
+    	};
 
-    private final float[] PLATFORM_START_X = {300, 600, 900};
-    private final float[] PLATFORM_START_Y = {150, 250, 350};
+    	// Pinchos (más obstáculos en áreas críticas)
+    	private final float[] PINCHO_START_X = {
+    	    400, 450, 500, 550, 600, 650, 1000, 1050, 1100, 1500, 1550, 1600, 1650
+    	};
+    	private final float[] PINCHO_START_Y = {
+    	    30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30
+    	};
 
-    private final float ENEMY_1_START_X = 150;
-    private final float ENEMY_1_START_Y = 50;
+    	// Enemigos (ubicados en zonas estratégicas)
+    	private final float ENEMY_1_START_X = 1200;
+    	private final float ENEMY_1_END_X = 1500;
+    	private final float ENEMY_1_START_Y = 50;
 
-    private final float ENEMY_2_START_X = 400;
-    private final float ENEMY_2_START_Y = 50;
+    	private final float ENEMY_2_START_X = 1700;
+    	private final float ENEMY_2_END_X = 1800;
+    	private final float ENEMY_2_START_Y = 170;
 
+    	private final float ENEMY_3_START_X = 2100;
+    	private final float ENEMY_3_END_X = 2200;
+    	private final float ENEMY_3_START_Y = 120;
+
+    	// Estatua (final del nivel)
+    	private final float ESTATUA_START_X = 1990;
+    	private final float ESTATUA_START_Y = 260;
+    
+    private BitmapFont font; // Inicializacion de la fuente para el texto
+
+	
     public Level1(Main game) {
-        super(game);
-
+        super(game); // Heredamos el constructor de la clase padre
+        
+        // Instanciamos todos los objetos a utilizar en este nivel
         player = new Player(PLAYER_START_X, PLAYER_START_Y);
-
         fullBackgroundTexture = new Texture("full_background_grey.png");
 
-        platformTexture = new Texture("platform.png");
-        platforms = new Array<>();
         for (int i = 0; i < PLATFORM_START_X.length; i++) {
-            platforms.add(new Platform(platformTexture, PLATFORM_START_X[i], PLATFORM_START_Y[i], 100, 20));
+            platforms.add(new Platform(platformGreyTexture, PLATFORM_START_X[i], PLATFORM_START_Y[i], platform_size_x, platform_size_y));
+        }    
+
+        for (int i = 0; i < PINCHO_START_X.length; i++) {
+            pinchos.add(new Pinchos(pinchosTexture, PINCHO_START_X[i], PINCHO_START_Y[i], pincho_img_x, pincho_img_y, pincho_htb_x, pincho_htb_y));
         }
+        
+        pinchos.add(new Pinchos(pinchosFlotantesTexture, 800, 150, pincho_img_x, pincho_img_y, pincho_htb_x, pincho_htb_y));
 
-        enemyTexture = new Texture("enemy.png");
-        enemies = new Array<>();
-        enemies.add(new Enemy(enemyTexture, ENEMY_1_START_X, ENEMY_1_START_Y, 50, 50, 100, 200, 700));
-        enemies.add(new Enemy(enemyTexture, ENEMY_2_START_X, ENEMY_2_START_Y, 50, 50, -120, 1200, 1900));
+        estatuas.add(new Estatua(estatuaTexture, ESTATUA_START_X, ESTATUA_START_Y, estatua_img_x, estatua_img_y, estatua_htb_x, estatua_htb_y));
+        
+        enemies.add(new Enemy(enemyTexture, ENEMY_1_START_X, ENEMY_1_START_Y, enemy_size, enemy_size, enemy_speed, ENEMY_1_START_X, ENEMY_1_END_X));
+        enemies.add(new Enemy(enemyTexture, ENEMY_2_START_X, ENEMY_2_START_Y, enemy_size, enemy_size, 70, ENEMY_2_START_X, ENEMY_2_END_X));
+        enemies.add(new Enemy(enemyTexture, ENEMY_3_START_X, ENEMY_3_START_Y, enemy_size, enemy_size, 70, ENEMY_3_START_X, ENEMY_3_END_X));
+        
+        font = new BitmapFont(); // Usa la fuente predeterminada
+        font.setColor(Color.WHITE); // Cambia el color si lo deseas
+        font.getData().setScale(1.5f); // Escala el tamaño del texto
+
     }
-
+    
     @Override
     public void render(float delta) {
-        Gdx.gl.glClearColor(0, 0, 0, 1);
-        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
-
+    	super.render(delta);
+    	
+        // Fijar el texto en la pantalla
+        batch.setProjectionMatrix(viewport.getCamera().combined); // Cambiar a coordenadas de pantalla
+        batch.begin();
+        font.draw(batch, "W saltar", 100, 250); // Coordenadas fijas
+        font.draw(batch, "W + W doble salto!", 400, 450); // Coordenadas fijas
+        font.draw(batch, "Cuidado! Space atacar", 1200, 200); // Coordenadas fijas
+        font.draw(batch, "Destruye la estatua para salvar el bosque", 1750, 400); // Coordenadas fijas
+        font.draw(batch, "R para reiniciar", 1000, 500); // Coordenadas fijas
+        batch.end();
+    	
         if (Gdx.input.isKeyJustPressed(Input.Keys.R)) {
             resetLevel();
         }
-
-        player.update(delta, camera, platforms, enemies);
-
-        for (Enemy enemy : enemies) {
-            enemy.update(delta);
+        
+        // Cambiar a Level2 si no quedan estatuas
+        if (estatuas.isEmpty()) {
+            game.setScreen(new Level2(game));
         }
 
-        for (int i = enemies.size - 1; i >= 0; i--) {
-            if (enemies.get(i).isReadyToRemove()) {
-                enemies.removeIndex(i);
-            }
-        }
-
-        float playerCenterX = player.getX() + player.getWidth() / 2f;
-        camera.position.x = Math.max(playerCenterX, VIRTUAL_WIDTH / 2f);
-
-        float backgroundWidth = fullBackgroundTexture.getWidth();
-        float minCameraX = VIRTUAL_WIDTH / 2f;
-        float maxCameraX = backgroundWidth - VIRTUAL_WIDTH / 2f;
-        camera.position.x = MathUtils.clamp(camera.position.x, minCameraX, maxCameraX);
-
-        camera.update();
-
-        batch.setProjectionMatrix(camera.combined);
-        drawBackground();
-
-        batch.begin();
-        player.draw(batch);
-        for (Platform platform : platforms) {
-            platform.draw(batch);
-        }
-        for (Enemy enemy : enemies) {
-            enemy.draw(batch);
-        }
-        batch.end();
-
-        drawHealthBar(player);
     }
-
+    
     @Override
     public void dispose() {
-        super.dispose();
-        platformTexture.dispose();
-        enemyTexture.dispose();
-        player.dispose();
+    	super.dispose();
+    	font.dispose();
     }
 
     private void resetLevel() {
@@ -106,12 +112,24 @@ public class Level1 extends BaseLevel {
 
         platforms.clear();
         for (int i = 0; i < PLATFORM_START_X.length; i++) {
-            platforms.add(new Platform(platformTexture, PLATFORM_START_X[i], PLATFORM_START_Y[i], 100, 20));
+            platforms.add(new Platform(platformGreyTexture, PLATFORM_START_X[i], PLATFORM_START_Y[i], platform_size_x, platform_size_y));
         }
-
+        
+        pinchos.clear();
+        for (int i = 0; i < PINCHO_START_X.length; i++) {
+            // Crear pinchos con las dimensiones originales
+            pinchos.add(new Pinchos(pinchosTexture, PINCHO_START_X[i], PINCHO_START_Y[i], pincho_img_x, pincho_img_y, pincho_htb_x, pincho_htb_y));
+        }
+        
+        pinchos.add(new Pinchos(pinchosFlotantesTexture, 800, 150, pincho_img_x, pincho_img_y, 100, 30));
+        
+        estatuas.clear();
+        estatuas.add(new Estatua(estatuaTexture, ESTATUA_START_X, ESTATUA_START_Y, estatua_img_x, estatua_img_y, estatua_htb_x, estatua_htb_y));
+        
         enemies.clear();
-        enemies.add(new Enemy(enemyTexture, ENEMY_1_START_X, ENEMY_1_START_Y, 50, 50, 100, 200, 700));
-        enemies.add(new Enemy(enemyTexture, ENEMY_2_START_X, ENEMY_2_START_Y, 50, 50, -120, 1200, 1900));
+        enemies.add(new Enemy(enemyTexture, ENEMY_1_START_X, ENEMY_1_START_Y, enemy_size, enemy_size, enemy_speed, ENEMY_1_START_X, ENEMY_1_END_X));
+        enemies.add(new Enemy(enemyTexture, ENEMY_2_START_X, ENEMY_2_START_Y, enemy_size, enemy_size, 70, ENEMY_2_START_X, ENEMY_2_END_X));
+        enemies.add(new Enemy(enemyTexture, ENEMY_3_START_X, ENEMY_3_START_Y, enemy_size, enemy_size, 70, ENEMY_3_START_X, ENEMY_3_END_X));
     }
     
     @Override

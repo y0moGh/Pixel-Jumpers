@@ -28,45 +28,57 @@ public class Player {
 
     
     private PlayerAnimation animation;
+        
+    private Rectangle hitbox; // Hitbox del jugador
+    private float hitboxWidth = 32;  // Ancho reducido de la hitbox
+    private float hitboxHeight = 32; // Alto reducido de la hitbox
+    private float hitboxOffsetX = 8; // Desplazamiento horizontal (centrar la hitbox)
+    private float hitboxOffsetY = 8; // Desplazamiento vertical
 
     public Player(float x, float y) {
         position = new Vector2(x, y);
         velocity = new Vector2(0, 0);
         animation = new PlayerAnimation();
+        
+        // Inicializa la hitbox centrada en la imagen
+        hitbox = new Rectangle(
+            position.x + hitboxOffsetX, 
+            position.y + hitboxOffsetY, 
+            hitboxWidth, 
+            hitboxHeight
+        );
     }
 
-    public void update(float deltaTime, Camera camera, Array<Platform> platforms, Array<Enemy> enemies) {
-        handleInput(deltaTime, enemies);
+    public void update(float deltaTime, Camera camera, Array<Platform> platforms, Array<Enemy> enemies, Array<Pinchos> pinchos,  Array<Estatua> estatuas, Array<Ground> grounds) {
+        handleInput(deltaTime, enemies, estatuas);
         applyGravity(deltaTime);
-        checkCollisions(platforms, enemies);
-        
+        checkCollisions(platforms, enemies, pinchos, grounds);
+
+        // Actualiza la hitbox según la posición del personaje
+        hitbox.setPosition(position.x + hitboxOffsetX, position.y + hitboxOffsetY);
+
         if (!isAlive) {
-            deathStateTime += deltaTime; // Avanzar el tiempo de la animación de muerte
+            deathStateTime += deltaTime;
             return;
         }
-        
-        // Reducir el cooldown del ataque
+
         if (attackCooldown > 0) {
             attackCooldown -= deltaTime;
         }
-        
+
         if (isAttacking) {
             attackStateTime += deltaTime;
-
-            // Terminar el ataque cuando la animación finaliza
             if (attackStateTime > animation.getAttackAnimationDuration()) {
                 isAttacking = false;
                 attackStateTime = 0;
             }
         }
 
-        // Restringir al jugador dentro de la pantalla
         constrainPlayerToScreen(camera);
-
-        // Actualizar la posición de la cámara
         camera.position.x = Math.max(camera.position.x, position.x + 32);
         camera.update();
     }
+
 
     public void draw(SpriteBatch batch) {
         TextureRegion currentFrame;
@@ -89,7 +101,7 @@ public class Player {
     }
 
 
-    private void handleInput(float deltaTime, Array<Enemy> enemies) {
+    private void handleInput(float deltaTime, Array<Enemy> enemies,  Array<Estatua> estatuas) {
         if (!isAlive || isAttacking) return;
 
         if (Gdx.input.isKeyPressed(Input.Keys.A)) {
@@ -111,7 +123,7 @@ public class Player {
             isAttacking = true;
             attackStateTime = 0; // Reinicia el tiempo de la animación
             attackCooldown = ATTACK_COOLDOWN_DURATION; // Activa el cooldown
-            attack(enemies); // Ejecuta el ataque
+            attack(enemies, estatuas); // Ejecuta el ataque
         }
     }
 
@@ -127,12 +139,11 @@ public class Player {
         }
     }
 
-    private void checkCollisions(Array<Platform> platforms, Array<Enemy> enemies) {
-        Rectangle playerBounds = new Rectangle(position.x, position.y, 64, 64);
-
+    private void checkCollisions(Array<Platform> platforms, Array<Enemy> enemies, Array<Pinchos> pinchos, Array<Ground> grounds) {
+        // Colisiones con plataformas
         for (Platform platform : platforms) {
-            if (playerBounds.overlaps(platform.getBounds()) && velocity.y <= 0) {
-                position.y = platform.getBounds().y + platform.getBounds().height;
+            if (hitbox.overlaps(platform.getBounds()) && velocity.y <= 0) {
+                position.y = platform.getBounds().y + platform.getBounds().height - hitboxOffsetY;
                 velocity.y = 0;
                 isJumping = false;
                 isDoubleJumping = false;
@@ -140,8 +151,9 @@ public class Player {
             }
         }
 
+        // Colisiones con enemigos
         for (Enemy enemy : enemies) {
-            if (playerBounds.overlaps(enemy.getBounds()) && isAlive && !isHurt) {
+            if (hitbox.overlaps(enemy.getBounds()) && isAlive && !isHurt) {
                 health -= 10;
                 isHurt = true;
                 hurtTimer = HURT_DURATION;
@@ -153,6 +165,31 @@ public class Player {
             }
         }
 
+        // Colisiones con pinchos
+        for (Pinchos pincho : pinchos) {
+            if (hitbox.overlaps(pincho.getBounds())) {
+                if (velocity.y <= 0) { // Si el jugador cae o está sobre los pinchos
+                    position.y = pincho.getBounds().y + pincho.getBounds().height - hitboxOffsetY;
+                    velocity.y = 0;
+                    isJumping = false;
+                    isDoubleJumping = false;
+                }
+
+                if (!isHurt) { // Daño al colisionar
+                    health -= 100;
+                    isHurt = true;
+                    hurtTimer = HURT_DURATION;
+
+                    if (health <= 0) {
+                        health = 0;
+                        isAlive = false;
+                    }
+                }
+                break;
+            }
+        }
+
+        // Temporizador para el estado de daño
         if (isHurt) {
             hurtTimer -= Gdx.graphics.getDeltaTime();
             if (hurtTimer <= 0) {
@@ -160,19 +197,34 @@ public class Player {
             }
         }
     }
+
+
+
+
+
     
-    public void attack(Array<Enemy> enemies) {
+    public void attack(Array<Enemy> enemies, Array<Estatua> estatuas) {
         float attackRange = 100f; // Rango de ataque en píxeles
 
         // Define el área del ataque
         Rectangle attackBounds = new Rectangle(position.x - attackRange / 2, position.y, 64 + attackRange, 64);
 
+        // Daño a enemigos
         for (Enemy enemy : enemies) {
             if (attackBounds.overlaps(enemy.getBounds())) {
                 enemy.takeDamage(25); // Inflige 25 de daño al enemigo
             }
         }
+
+        // Daño a estatuas
+        for (Estatua estatua : estatuas) {
+            if (attackBounds.overlaps(estatua.getBounds())) {
+                estatuas.removeValue(estatua, true); // Destruir la estatua
+                break; // Detenemos el bucle si una estatua es destruida
+            }
+        }
     }
+
     
     private void constrainPlayerToScreen(Camera camera) {
         float cameraLeftEdge = camera.position.x - camera.viewportWidth / 2f;
@@ -190,6 +242,10 @@ public class Player {
     public float getX() {
         return position.x;
     }
+    
+    public float getY() {
+        return position.y;
+    }
 
     public float getWidth() {
         return 64; // El ancho del jugador
@@ -204,7 +260,7 @@ public class Player {
     }
     
     public void reset() {
-        health = 110;  // Restablecer salud
+        health = 100;  // Restablecer salud
         hurtTimer = 0;  // Reiniciar el temporizador de daño
         isHurt = false;  // Asegurarse de que no esté en estado de herido
     }
