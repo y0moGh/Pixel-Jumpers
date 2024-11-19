@@ -230,25 +230,26 @@ public class Player {
         }
     }
 
-
-
-
-
-    
     public void attack(Array<Enemy> enemies, Array<Estatua> estatuas) {
-        float attackRange = 100f; // Rango de ataque en pÃ­xeles
+        float attackRange = 100f; // Rango de ataque en píxeles
 
-        // Define el Ã¡rea del ataque
+        // Define el área del ataque
         Rectangle attackBounds = new Rectangle(position.x - attackRange / 2, position.y, 64 + attackRange, 64);
 
-        // DaÃ±o a enemigos
+        // Daño y empuje a enemigos
         for (Enemy enemy : enemies) {
             if (attackBounds.overlaps(enemy.getBounds())) {
-                enemy.takeDamage(25); // Inflige 25 de daÃ±o al enemigo
+                enemy.takeDamage(25); // Inflige 25 de daño al enemigo
+
+                // Calcula la dirección del empuje
+                float pushDirection = position.x < enemy.getX() ? 1 : -1; // Empuja hacia la derecha o izquierda
+
+                // Aplica el empuje al enemigo
+                enemy.applyPush(pushDirection, 100, 0.2f); // Dirección, velocidad y duración del empuje
             }
         }
 
-        // DaÃ±o a estatuas
+        // Daño a estatuas
         for (Estatua estatua : estatuas) {
             if (attackBounds.overlaps(estatua.getBounds())) {
                 estatuas.removeValue(estatua, true); // Destruir la estatua
