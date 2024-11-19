@@ -109,6 +109,10 @@ public class Level1 extends BaseLevel {
     private void resetLevel() {
         player = new Player(PLAYER_START_X, PLAYER_START_Y);
         player.reset();
+        
+        // Ajustar la posición inicial de la cámara al inicio del nivel
+        camera.position.set(PLAYER_START_X + VIRTUAL_WIDTH / 2f, VIRTUAL_HEIGHT / 2f, 0);
+        camera.update();
 
         platforms.clear();
         for (int i = 0; i < PLATFORM_START_X.length; i++) {

@@ -1,25 +1,21 @@
 package pixel.jumpers;
 
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
-import com.badlogic.gdx.math.Rectangle;
-import com.badlogic.gdx.utils.Array;
 
 public class Level2 extends BaseLevel {
-    private final float PLAYER_START_X = 100;
+    private final float PLAYER_START_X = 0;
     private final float PLAYER_START_Y = 100;
 
-    private final float[] PLATFORM_START_X = {200, 500, 800};
-    private final float[] PLATFORM_START_Y = {150, 250, 350};
+    private final float[][] PLATFORM_POSITIONS = {
+        {0, 100}, {300, 200}, {600, 300}, {900, 150}, {1200, 250}, {1500, 200}, {1600, 350}, {2000, 250}
+    };
 
-    private final float ENEMY_1_START_X = 150;
-    private final float ENEMY_1_START_Y = 50;
-
-    private final float ESTATUA_START_X = 700;
-    private final float ESTATUA_START_Y = 40;
-    
-    private final float[] PINCHO_START_X = {300};
-    private final float[] PINCHO_START_Y = {30};
+    private final float[][] PINCHOS_FLOTANTES_POSITIONS = {
+        {450, 220}, {750, 320}, {1050, 180}, {1400, 370}, {1800, 270}
+    };
 
     public Level2(Main game) {
         super(game);
@@ -28,38 +24,170 @@ public class Level2 extends BaseLevel {
 
         fullBackgroundTexture = new Texture("full_background_grey.png");
 
-        for (int i = 0; i < PLATFORM_START_X.length; i++) {
-            platforms.add(new Platform(platformTexture, PLATFORM_START_X[i], PLATFORM_START_Y[i], platform_size_x, platform_size_y));
+        // Agregar plataformas
+        for (float[] pos : PLATFORM_POSITIONS) {
+            platforms.add(new Platform(
+                platformTexture, 
+                pos[0], 
+                pos[1], 
+                platform_size_x, 
+                platform_size_y
+            ));
         }
-        
-        grounds.add(new Ground(groundTexture, 900, -10, ground_img_x, ground_img_y, 150, 320));
 
-        enemies.add(new Enemy(enemyTexture, ENEMY_1_START_X, ENEMY_1_START_Y, enemy_size, enemy_size, enemy_speed, 200, 700));
+        // Agregar enemigos en plataformas seleccionadas
+        int[] platformsWithEnemies = {2, 4, 6}; // Solo en estas plataformas habrá enemigos
+        for (int i : platformsWithEnemies) {
+            float enemyX = PLATFORM_POSITIONS[i][0];
+            float enemyY = PLATFORM_POSITIONS[i][1] + 20;
+            enemies.add(new Enemy(
+                enemyTexture, 
+                enemyX, 
+                enemyY, 
+                enemy_size, 
+                enemy_size, 
+                40, 
+                enemyX, 
+                enemyX + 100
+            ));
+        }
 
+        // Agregar la estatua al final (cerca de X = 2200)
+        float finalPlatformX = PLATFORM_POSITIONS[PLATFORM_POSITIONS.length - 1][0];
+        float finalPlatformY = PLATFORM_POSITIONS[PLATFORM_POSITIONS.length - 1][1];
+        estatuas.add(new Estatua(
+            estatuaTexture, 
+            finalPlatformX - 10, 
+            finalPlatformY + 10, 
+            estatua_img_x, 
+            estatua_img_y, 
+            estatua_htb_x, 
+            estatua_htb_y
+        ));
 
-        estatuas.add(new Estatua(estatuaTexture, ESTATUA_START_X, ESTATUA_START_Y, estatua_img_x, estatua_img_y, estatua_htb_x, estatua_htb_y));
-        
-        for (int i = 0; i < PINCHO_START_X.length; i++) {
-            pinchos.add(new Pinchos(pinchosTexture, PINCHO_START_X[i], PINCHO_START_Y[i], pincho_img_x, pincho_img_y, pincho_htb_x, pincho_htb_y));
+        // Agregar pinchos en todo el suelo
+        for (float x = 0; x <= 2200; x += 50) {
+            pinchos.add(new Pinchos(
+                pinchosTexture, 
+                x, 
+                30, 
+                pincho_img_x, 
+                pincho_img_y, 
+                pincho_htb_x, 
+                pincho_htb_y
+            ));
+        }
+
+        // Agregar pinchos flotantes
+        for (float[] pos : PINCHOS_FLOTANTES_POSITIONS) {
+            pinchos.add(new Pinchos(
+                pinchosFlotantesTexture, 
+                pos[0], 
+                pos[1], 
+                pincho_img_x, 
+                pincho_img_y, 
+                pincho_htb_x, 
+                pincho_htb_y
+            ));
         }
     }
 
     @Override
     public void render(float delta) {
         super.render(delta);
-
         // Lógica para Level2
-        // Dibuja las hitboxes
-        shapeRenderer.setProjectionMatrix(camera.combined);
-        shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
-        shapeRenderer.setColor(1, 0, 0, 1); // Rojo para las hitboxes
-        for (Ground ground : grounds) {
-            Rectangle bounds = ground.getBounds();
-            shapeRenderer.rect(bounds.x, bounds.y, bounds.width, bounds.height);
+        if (Gdx.input.isKeyJustPressed(Input.Keys.R)) {
+            resetLevel();
         }
-        shapeRenderer.end();
+        
+        /* Cambiar a Level2 si no quedan estatuas
+        if (estatuas.isEmpty()) {
+            game.setScreen(new Level2(game));
+        } */
     }
     
+    private void resetLevel() {
+        // Reiniciar al jugador
+        player = new Player(PLAYER_START_X, PLAYER_START_Y);
+        player.reset();
+
+        // Ajustar la posición inicial de la cámara al inicio del nivel
+        camera.position.set(PLAYER_START_X + VIRTUAL_WIDTH / 2f, VIRTUAL_HEIGHT / 2f, 0);
+        camera.update();
+
+        // Reiniciar plataformas, enemigos, pinchos, etc.
+        platforms.clear();
+        for (float[] pos : PLATFORM_POSITIONS) {
+            platforms.add(new Platform(
+                platformTexture,
+                pos[0],
+                pos[1],
+                platform_size_x,
+                platform_size_y
+            ));
+        }
+
+        // Reiniciar enemigos
+        enemies.clear();
+        int[] platformsWithEnemies = {2, 4, 6};
+        for (int i : platformsWithEnemies) {
+            float enemyX = PLATFORM_POSITIONS[i][0];
+            float enemyY = PLATFORM_POSITIONS[i][1] + 20;
+            enemies.add(new Enemy(
+                enemyTexture,
+                enemyX,
+                enemyY,
+                enemy_size,
+                enemy_size,
+                40,
+                enemyX,
+                enemyX + 100
+            ));
+        }
+
+        // Reiniciar pinchos en el suelo
+        pinchos.clear();
+        for (float x = 0; x <= 2200; x += 50) {
+            pinchos.add(new Pinchos(
+                pinchosTexture,
+                x,
+                30,
+                pincho_img_x,
+                pincho_img_y,
+                pincho_htb_x,
+                pincho_htb_y
+            ));
+        }
+
+        // Reiniciar pinchos flotantes
+        for (float[] pos : PINCHOS_FLOTANTES_POSITIONS) {
+            pinchos.add(new Pinchos(
+                pinchosFlotantesTexture,
+                pos[0],
+                pos[1],
+                pincho_img_x,
+                pincho_img_y,
+                pincho_htb_x,
+                pincho_htb_y
+            ));
+        }
+
+        // Reiniciar estatua
+        estatuas.clear();
+        float finalPlatformX = PLATFORM_POSITIONS[PLATFORM_POSITIONS.length - 1][0];
+        float finalPlatformY = PLATFORM_POSITIONS[PLATFORM_POSITIONS.length - 1][1];
+        estatuas.add(new Estatua(
+            estatuaTexture,
+            finalPlatformX - 10,
+            finalPlatformY + 10,
+            estatua_img_x,
+            estatua_img_y,
+            estatua_htb_x,
+            estatua_htb_y
+        ));
+    }
+
+
     @Override
     public void show() {
         // Se ejecuta al mostrar la pantalla por primera vez
@@ -80,4 +208,3 @@ public class Level2 extends BaseLevel {
         // Se ejecuta al reanudar el juego tras una pausa
     }
 }
-
