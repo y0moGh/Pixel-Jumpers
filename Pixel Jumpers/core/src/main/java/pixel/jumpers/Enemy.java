@@ -23,6 +23,11 @@ public class Enemy {
 
     // Modificar el estado de la muerte
     private boolean isDead; // Indicador de si el enemigo está muerto
+    
+    private boolean isBeingPushed = false;
+    private float pushVelocity = 0;
+    private float pushTimer = 0;
+
 
     // Actualizamos el constructor
     public Enemy(Texture texture, float x, float y, float width, float height, float speed, float minX, float maxX) {
@@ -47,36 +52,63 @@ public class Enemy {
     }
 
     public void update(float deltaTime) {
-    	if (isDead) {
-    	    deathTimer += deltaTime;
-    	    if (deathTimer >= DEATH_DURATION) {
-    	        // Aquí no hacemos nada; la eliminación la maneja el `Main`
-    	        return;
-    	    }
-    	    return;
-    	}
+        if (isDead) {
+            deathTimer += deltaTime;
 
-        if (isHurt) {
-            hurtTimer -= deltaTime;
-            if (hurtTimer <= 0) {
-                isHurt = false; // Finaliza el estado de daño
+            // Procesar el empuje durante la animación de muerte
+            if (isBeingPushed) {
+                x += pushVelocity * deltaTime;
+
+                // Reducir el tiempo del empuje
+                pushTimer -= deltaTime;
+                if (pushTimer <= 0) {
+                    isBeingPushed = false;
+                    pushVelocity = 0; // Detener el movimiento al finalizar el empuje
+                }
             }
-            return; // Durante el estado de daño, el enemigo no se mueve
+
+            bounds.setPosition(x, y);
+            return; // No realizar otros movimientos
         }
 
+        // Procesar el empuje y el daño al mismo tiempo
+        if (isHurt || isBeingPushed) {
+            if (isBeingPushed) {
+                x += pushVelocity * deltaTime;
+
+                // Reducir el tiempo del empuje
+                pushTimer -= deltaTime;
+                if (pushTimer <= 0) {
+                    isBeingPushed = false;
+                    pushVelocity = 0;
+                }
+            }
+
+            if (isHurt) {
+                hurtTimer -= deltaTime;
+                if (hurtTimer <= 0) {
+                    isHurt = false;
+                }
+            }
+
+            bounds.setPosition(x, y);
+            return; // Salir aquí, no realizar otros movimientos
+        }
+
+        // Movimiento normal del enemigo
         x += speed * deltaTime;
 
-        // Cambiar dirección si alcanza los límites del rango de movimiento
         if (x < minX) {
-            x = minX; // Asegurar que no pase del límite
+            x = minX;
             reverseDirection();
         } else if (x + width > maxX) {
-            x = maxX - width; // Asegurar que no pase del límite
+            x = maxX - width;
             reverseDirection();
         }
 
         bounds.setPosition(x, y);
     }
+
 
 
     private void reverseDirection() {
@@ -103,8 +135,6 @@ public class Enemy {
     }
 
     public void takeDamage(int damage) {
-        if (isDead) return; // Si ya está muerto, no hacer nada
-
         health -= damage;
         if (health <= 0) {
             health = 0;
@@ -115,11 +145,20 @@ public class Enemy {
             hurtTimer = HURT_DURATION;
         }
     }
+    
+    public void applyPush(float direction, float velocity, float duration) {
+        isBeingPushed = true; // Permitir empuje incluso si está muerto
+        pushVelocity = direction * velocity; // Velocidad con dirección
+        pushTimer = duration; // Tiempo de duración del empuje
+    }
 
     public boolean isReadyToRemove() {
         return isDead && deathTimer >= DEATH_DURATION; // Listo para eliminar después de la animación de muerte
     }
-
+    
+    public float getX() {
+    	return x;
+    }
 
     public int getHealth() {
         return health;

@@ -1,5 +1,6 @@
 package pixel.jumpers;
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
@@ -16,6 +17,10 @@ public class PlayerAnimation {
     private Animation<TextureRegion> hurtAnimation;
     private Animation<TextureRegion> deathAnimation;
     private Animation<TextureRegion> attackAnimation;
+    private Animation<TextureRegion> attackLeftAnimation;
+    private Animation<TextureRegion> hurtLeftAnimation;
+    private Animation<TextureRegion> deathLeftAnimation;
+    private Animation<TextureRegion> idleLeftAnimation;
 
     // Texturas utilizadas para crear las animaciones
     private Texture walkSheetLeft;
@@ -28,6 +33,11 @@ public class PlayerAnimation {
     private Texture hurtSheet;
     private Texture deathSheet;
     private Texture attackSheet;
+    private Texture attackLeftSheet;
+    private Texture hurtLeftSheet;
+    private Texture deathLeftSheet;
+    private Texture idleLeftSheet;
+
 
     private float stateTime;
 
@@ -43,6 +53,10 @@ public class PlayerAnimation {
         hurtSheet = new Texture("hurt.png");
         deathSheet = new Texture("death.png");
         attackSheet = new Texture("attack.png");
+        attackLeftSheet = new Texture("attack_left.png");
+        hurtLeftSheet = new Texture("hurt_left.png");
+        deathLeftSheet = new Texture("death_left.png");
+        idleLeftSheet = new Texture("Idle_left.png");
 
         // Crear animaciones a partir de las texturas
         walkLeftAnimation = createAnimationFromSheet(walkSheetLeft, 32, 32, 0.1f);
@@ -54,8 +68,11 @@ public class PlayerAnimation {
         doubleJumpLeftAnimation = createAnimationFromSheet(doubleJumpLeftSheet, 32, 32, 0.1f);
         hurtAnimation = createAnimationFromSheet(hurtSheet, 32, 32, 0.1f);
         deathAnimation = createAnimationFromSheet(deathSheet, 32, 32, 0.1f);
-        attackAnimation = createAnimationFromSheet(attackSheet, 32, 32, 0.1f); 
-
+        attackAnimation = createAnimationFromSheet(attackSheet, 32, 32, 0.1f);
+        attackLeftAnimation = createAnimationFromSheet(attackLeftSheet, 32, 32, 0.1f);
+        hurtLeftAnimation = createAnimationFromSheet(hurtLeftSheet, 32, 32, 0.1f);
+        deathLeftAnimation = createAnimationFromSheet(deathLeftSheet, 32, 32, 0.1f);
+        idleLeftAnimation = createAnimationFromSheet(idleLeftSheet, 32, 32, 0.1f);
 
         stateTime = 0f;
     }
@@ -118,6 +135,20 @@ public class PlayerAnimation {
         return attackAnimation.getAnimationDuration();
     }
     
+    public TextureRegion getAttackLeftFrame(float stateTime) {
+        return attackLeftAnimation.getKeyFrame(stateTime, false);
+    }
+
+    public TextureRegion getHurtLeftFrame() {
+        stateTime += com.badlogic.gdx.Gdx.graphics.getDeltaTime();
+        return hurtLeftAnimation.getKeyFrame(stateTime, true);
+    }
+    
+    public TextureRegion getIdleLeftFrame() {
+        stateTime += com.badlogic.gdx.Gdx.graphics.getDeltaTime();
+        return idleLeftAnimation.getKeyFrame(stateTime, true);
+    }
+    
     public TextureRegion getDeathFrame(float stateTime) {
         // Obtener los frames de la animación
         Object[] frames = deathAnimation.getKeyFrames();
@@ -133,8 +164,22 @@ public class PlayerAnimation {
         // De lo contrario, devolver el frame actual de la animación
         return deathAnimation.getKeyFrame(stateTime, false);
     }
-
-
+    
+    public TextureRegion getJumpFrame(boolean facingRight) {
+        stateTime += Gdx.graphics.getDeltaTime();
+        return facingRight ? jumpAnimation.getKeyFrame(stateTime, false)
+                           : jumpLeftAnimation.getKeyFrame(stateTime, false);
+    }    
+    
+    public TextureRegion getDeathLeftFrame(float stateTime) {
+        Object[] frames = deathLeftAnimation.getKeyFrames();
+        TextureRegion lastFrame = (TextureRegion) frames[frames.length - 1];
+        if (deathLeftAnimation.isAnimationFinished(stateTime)) {
+            return lastFrame;
+        }
+        return deathLeftAnimation.getKeyFrame(stateTime, false);
+    }
+    
 
     // Liberar todos los recursos de textura
     public void dispose() {
@@ -148,5 +193,10 @@ public class PlayerAnimation {
         if (hurtSheet != null) hurtSheet.dispose();
         if (deathSheet != null) deathSheet.dispose();
         if (attackSheet != null) attackSheet.dispose();
+        if (attackLeftSheet != null) attackLeftSheet.dispose();
+        if (hurtLeftSheet != null) hurtLeftSheet.dispose();
+        if (deathLeftSheet != null) deathLeftSheet.dispose();
+        if (idleLeftSheet != null) idleLeftSheet.dispose();
+
     }
 }

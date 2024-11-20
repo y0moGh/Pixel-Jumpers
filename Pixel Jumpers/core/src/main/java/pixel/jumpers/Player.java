@@ -23,9 +23,9 @@ public class Player {
     private float deathStateTime = 0; // Tiempo desde que comenzó la animación de muerte
     private boolean isAttacking = false; // Indica si el jugador está atacando
     private float attackCooldown = 0;   // Temporizador para el cooldown del ataque
-    private final float ATTACK_COOLDOWN_DURATION = 1.0f; // Cooldown en segundos
+    private final float ATTACK_COOLDOWN_DURATION = 0f; // Cooldown en segundos
     private float attackStateTime = 0;  // Tiempo acumulado para la animación de ataque
-
+    private boolean isFacingRight = true;
     
     private PlayerAnimation animation;
         
@@ -34,6 +34,11 @@ public class Player {
     private float hitboxHeight = 32; // Alto reducido de la hitbox
     private float hitboxOffsetX = 8; // Desplazamiento horizontal (centrar la hitbox)
     private float hitboxOffsetY = 8; // Desplazamiento vertical
+    
+    private boolean isBeingPushed = false; // Indica si el jugador est  siendo empujado
+    private float pushTimer = 0;           // Temporizador para la duraci n del empuje
+    private final float PUSH_DURATION = 0.2f; // Duraci n del empuje en segundos
+
 
     public Player(float x, float y) {
         position = new Vector2(x, y);
@@ -73,6 +78,23 @@ public class Player {
                 attackStateTime = 0;
             }
         }
+        
+        if (isBeingPushed) {
+            // Aplica la velocidad del empuje a la posici n
+            position.x += velocity.x * deltaTime;
+
+            // Reduce el temporizador del empuje
+            pushTimer -= deltaTime;
+
+            if (pushTimer <= 0) {
+                isBeingPushed = false;
+                velocity.x = 0; // Detener el movimiento despu s del empuje
+            }
+
+            // Salimos para evitar que se procesen otros movimientos
+            return;
+        }
+
 
         constrainPlayerToScreen(camera);
         camera.position.x = Math.max(camera.position.x, position.x + 32);
@@ -84,31 +106,46 @@ public class Player {
         TextureRegion currentFrame;
 
         if (!isAlive) {
-            currentFrame = animation.getDeathFrame(deathStateTime);
+            currentFrame = isFacingRight
+                ? animation.getDeathFrame(deathStateTime)
+                : animation.getDeathLeftFrame(deathStateTime);
         } else if (isHurt) {
-            currentFrame = animation.getHurtFrame();
+            currentFrame = isFacingRight
+                ? animation.getHurtFrame()
+                : animation.getHurtLeftFrame();
         } else if (isAttacking) {
-            currentFrame = animation.getAttackFrame(attackStateTime);
+            currentFrame = isFacingRight
+                ? animation.getAttackFrame(attackStateTime)
+                : animation.getAttackLeftFrame(attackStateTime);
+        } else if (isJumping || isDoubleJumping) {
+            currentFrame = animation.getJumpFrame(isFacingRight);
+        } else if (Gdx.input.isKeyPressed(Input.Keys.A)) {
+            // Caminar hacia la izquierda
+            currentFrame = animation.getCurrentFrame(true, false, false, false);
+        } else if (Gdx.input.isKeyPressed(Input.Keys.D)) {
+            // Caminar hacia la derecha
+            currentFrame = animation.getCurrentFrame(false, true, false, false);
         } else {
-            currentFrame = animation.getCurrentFrame(
-                Gdx.input.isKeyPressed(Input.Keys.A),
-                Gdx.input.isKeyPressed(Input.Keys.D),
-                isJumping, isDoubleJumping
-            );
+            // Animación de reposo
+            currentFrame = isFacingRight
+                ? animation.getIdleFrame()
+                : animation.getIdleLeftFrame();
         }
 
         batch.draw(currentFrame, position.x, position.y, 64, 64);
     }
 
 
-    private void handleInput(float deltaTime, Array<Enemy> enemies,  Array<Estatua> estatuas) {
-        if (!isAlive || isAttacking) return;
+    private void handleInput(float deltaTime, Array<Enemy> enemies, Array<Estatua> estatuas) {
+        if (!isAlive || isAttacking) return; // Bloquea entrada si está muerto o atacando
 
         if (Gdx.input.isKeyPressed(Input.Keys.A)) {
             position.x -= 200 * deltaTime;
+            isFacingRight = false; // Actualiza la dirección incluso si está en idle
         }
         if (Gdx.input.isKeyPressed(Input.Keys.D)) {
             position.x += 200 * deltaTime;
+            isFacingRight = true;
         }
         if (Gdx.input.isKeyJustPressed(Input.Keys.W)) {
             if (!isJumping) {
@@ -126,7 +163,6 @@ public class Player {
             attack(enemies, estatuas); // Ejecuta el ataque
         }
     }
-
 
     private void applyGravity(float deltaTime) {
         velocity.y -= 25;
@@ -151,13 +187,23 @@ public class Player {
             }
         }
 
-        // Colisiones con enemigos
+     // Colisiones con enemigos
         for (Enemy enemy : enemies) {
-            if (hitbox.overlaps(enemy.getBounds()) && isAlive && !isHurt) {
+            if (hitbox.overlaps(enemy.getBounds()) && isAlive && !isHurt && !isBeingPushed) {
+                // Reducir salud
                 health -= 10;
                 isHurt = true;
                 hurtTimer = HURT_DURATION;
 
+                // Determinar la direcci n del empuje
+                float pushDirection = position.x < enemy.getX() ? -1 : 1; // Empujar hacia la izquierda o derecha
+
+                // Aplicar empuje
+                velocity.x = pushDirection * 180; // Magnitud del empuje
+                isBeingPushed = true;
+                pushTimer = PUSH_DURATION;
+
+                // Verificar si el jugador muere
                 if (health <= 0) {
                     health = 0;
                     isAlive = false;
@@ -198,25 +244,26 @@ public class Player {
         }
     }
 
-
-
-
-
-    
     public void attack(Array<Enemy> enemies, Array<Estatua> estatuas) {
-        float attackRange = 100f; // Rango de ataque en píxeles
+        float attackRange = 30f; // Rango de ataque en p xeles
 
-        // Define el área del ataque
+        // Define el  area del ataque
         Rectangle attackBounds = new Rectangle(position.x - attackRange / 2, position.y, 64 + attackRange, 64);
 
-        // Daño a enemigos
+        // Da o y empuje a enemigos
         for (Enemy enemy : enemies) {
             if (attackBounds.overlaps(enemy.getBounds())) {
-                enemy.takeDamage(25); // Inflige 25 de daño al enemigo
+                enemy.takeDamage(25); // Inflige 25 de da o al enemigo
+
+                // Calcula la direcci n del empuje
+                float pushDirection = position.x < enemy.getX() ? 1 : -1; // Empuja hacia la derecha o izquierda
+
+                // Aplica el empuje al enemigo
+                enemy.applyPush(pushDirection, 100, 0.2f); // Direcci n, velocidad y duraci n del empuje
             }
         }
 
-        // Daño a estatuas
+        // Da o a estatuas
         for (Estatua estatua : estatuas) {
             if (attackBounds.overlaps(estatua.getBounds())) {
                 estatuas.removeValue(estatua, true); // Destruir la estatua
