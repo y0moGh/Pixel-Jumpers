@@ -100,10 +100,12 @@ public class Level2 extends BaseLevel {
             resetLevel();
         }
         
-        /* Cambiar a Level2 si no quedan estatuas
+        /* Cambiar a Level3 si no quedan estatuas
         if (estatuas.isEmpty()) {
-            game.setScreen(new Level2(game));
+            game.setScreen(new Level3(game));
         } */
+        
+        drawHealthBar(player);
     }
     
     private void resetLevel() {

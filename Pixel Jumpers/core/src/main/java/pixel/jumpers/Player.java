@@ -38,6 +38,7 @@ public class Player {
     private boolean isBeingPushed = false; // Indica si el jugador est  siendo empujado
     private float pushTimer = 0;           // Temporizador para la duraci n del empuje
     private final float PUSH_DURATION = 0.2f; // Duraci n del empuje en segundos
+    public boolean move = true;
 
 
     public Player(float x, float y) {
@@ -104,64 +105,70 @@ public class Player {
 
     public void draw(SpriteBatch batch) {
         TextureRegion currentFrame;
+        
+        if (move) {
+            if (!isAlive) {
+                currentFrame = isFacingRight
+                    ? animation.getDeathFrame(deathStateTime)
+                    : animation.getDeathLeftFrame(deathStateTime);
+            } else if (isHurt) {
+                currentFrame = isFacingRight
+                    ? animation.getHurtFrame()
+                    : animation.getHurtLeftFrame();
+            } else if (isAttacking) {
+                currentFrame = isFacingRight
+                    ? animation.getAttackFrame(attackStateTime)
+                    : animation.getAttackLeftFrame(attackStateTime);
+            } else if (isJumping || isDoubleJumping) {
+                currentFrame = animation.getJumpFrame(isFacingRight);
+            } else if (Gdx.input.isKeyPressed(Input.Keys.A)) {
+                // Caminar hacia la izquierda
+                currentFrame = animation.getCurrentFrame(true, false, false, false);
+            } else if (Gdx.input.isKeyPressed(Input.Keys.D)) {
+                // Caminar hacia la derecha
+                currentFrame = animation.getCurrentFrame(false, true, false, false);
+            } else {
+                // Animación de reposo
+                currentFrame = isFacingRight
+                    ? animation.getIdleFrame()
+                    : animation.getIdleLeftFrame();
+            }
 
-        if (!isAlive) {
-            currentFrame = isFacingRight
-                ? animation.getDeathFrame(deathStateTime)
-                : animation.getDeathLeftFrame(deathStateTime);
-        } else if (isHurt) {
-            currentFrame = isFacingRight
-                ? animation.getHurtFrame()
-                : animation.getHurtLeftFrame();
-        } else if (isAttacking) {
-            currentFrame = isFacingRight
-                ? animation.getAttackFrame(attackStateTime)
-                : animation.getAttackLeftFrame(attackStateTime);
-        } else if (isJumping || isDoubleJumping) {
-            currentFrame = animation.getJumpFrame(isFacingRight);
-        } else if (Gdx.input.isKeyPressed(Input.Keys.A)) {
-            // Caminar hacia la izquierda
-            currentFrame = animation.getCurrentFrame(true, false, false, false);
-        } else if (Gdx.input.isKeyPressed(Input.Keys.D)) {
-            // Caminar hacia la derecha
-            currentFrame = animation.getCurrentFrame(false, true, false, false);
-        } else {
-            // Animación de reposo
-            currentFrame = isFacingRight
-                ? animation.getIdleFrame()
-                : animation.getIdleLeftFrame();
+            batch.draw(currentFrame, position.x, position.y, 64, 64);
+        	
         }
-
-        batch.draw(currentFrame, position.x, position.y, 64, 64);
     }
 
 
-    private void handleInput(float deltaTime, Array<Enemy> enemies, Array<Estatua> estatuas) {
-        if (!isAlive || isAttacking) return; // Bloquea entrada si está muerto o atacando
+    protected void handleInput(float deltaTime, Array<Enemy> enemies, Array<Estatua> estatuas) {
+        if(move) {
+        	if (!isAlive || isAttacking) return; // Bloquea entrada si está muerto o atacando
 
-        if (Gdx.input.isKeyPressed(Input.Keys.A)) {
-            position.x -= 200 * deltaTime;
-            isFacingRight = false; // Actualiza la dirección incluso si está en idle
-        }
-        if (Gdx.input.isKeyPressed(Input.Keys.D)) {
-            position.x += 200 * deltaTime;
-            isFacingRight = true;
-        }
-        if (Gdx.input.isKeyJustPressed(Input.Keys.W)) {
-            if (!isJumping) {
-                velocity.y = 500;
-                isJumping = true;
-            } else if (!isDoubleJumping) {
-                velocity.y = 500;
-                isDoubleJumping = true;
+            if (Gdx.input.isKeyPressed(Input.Keys.A)) {
+                position.x -= 200 * deltaTime;
+                isFacingRight = false; // Actualiza la dirección incluso si está en idle
             }
+            if (Gdx.input.isKeyPressed(Input.Keys.D)) {
+                position.x += 200 * deltaTime;
+                isFacingRight = true;
+            }
+            if (Gdx.input.isKeyJustPressed(Input.Keys.W)) {
+                if (!isJumping) {
+                    velocity.y = 500;
+                    isJumping = true;
+                } else if (!isDoubleJumping) {
+                    velocity.y = 500;
+                    isDoubleJumping = true;
+                }
+            }
+            if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE) && attackCooldown <= 0) {
+                isAttacking = true;
+                attackStateTime = 0; // Reinicia el tiempo de la animación
+                attackCooldown = ATTACK_COOLDOWN_DURATION; // Activa el cooldown
+                attack(enemies, estatuas); // Ejecuta el ataque
+            }   	
         }
-        if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE) && attackCooldown <= 0) {
-            isAttacking = true;
-            attackStateTime = 0; // Reinicia el tiempo de la animación
-            attackCooldown = ATTACK_COOLDOWN_DURATION; // Activa el cooldown
-            attack(enemies, estatuas); // Ejecuta el ataque
-        }
+
     }
 
     private void applyGravity(float deltaTime) {

@@ -5,6 +5,12 @@ import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
+import com.badlogic.gdx.scenes.scene2d.ui.Skin;
+import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
+import com.badlogic.gdx.scenes.scene2d.InputEvent;
+
 
 public class Level1 extends BaseLevel {
 	// Inicializacion de las posiciones iniciales de los objetos
@@ -43,9 +49,15 @@ public class Level1 extends BaseLevel {
     	private final float ESTATUA_START_X = 1990;
     	private final float ESTATUA_START_Y = 260;
     
-    private BitmapFont font; // Inicializacion de la fuente para el texto
-
-	
+    	private BitmapFont font; // Inicializacion de la fuente para el texto
+    
+        private boolean isMenuActive = true; // Estado inicial en modo menú
+        private Stage stage; // Para manejar la UI del menú   
+        
+        // Nueva textura para el título
+        private Texture tituloTexture;
+        private Texture playTexture;
+        
     public Level1(Main game) {
         super(game); // Heredamos el constructor de la clase padre
         
@@ -72,12 +84,73 @@ public class Level1 extends BaseLevel {
         font = new BitmapFont(); // Usa la fuente predeterminada
         font.setColor(Color.WHITE); // Cambia el color si lo deseas
         font.getData().setScale(1.5f); // Escala el tamaño del texto
+        
+        // Cargar la textura del título
+        tituloTexture = new Texture("titulo.png");
+        playTexture = new Texture("play.png");
+        
+        // Crear el menú inicial
+        createMenu();
+        
 
+    }
+    
+    private void createMenu() {
+        stage = new Stage(viewport); // Usar el viewport del nivel
+        Gdx.input.setInputProcessor(stage); // Configurar el procesador de entrada para el menú
+
+        Skin skin = new Skin();
+        BitmapFont buttonFont = new BitmapFont();
+        skin.add("default-font", buttonFont);
+
+        TextButton.TextButtonStyle style = new TextButton.TextButtonStyle();
+        style.font = skin.getFont("default-font");
+        skin.add("default", style);
+
+        TextButton playButton = new TextButton("Jugar", skin);
+        playButton.setSize(200, 80);
+        playButton.setPosition((VIRTUAL_WIDTH - playButton.getWidth()) / 2 + 35, 200);
+
+        playButton.addListener(new ClickListener() {
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                isMenuActive = false; // Salir del menú
+                Gdx.input.setInputProcessor(null); // Habilitar entrada estándar del juego
+            }
+        });
+
+        stage.addActor(playButton);
     }
     
     @Override
     public void render(float delta) {
     	super.render(delta);
+    	
+    	  // Si el menú está activo, dibujar el menú
+        if (isMenuActive) {
+            player.move = false;
+            stage.act(delta);
+            stage.draw();
+
+            // Dibujar la imagen del título
+            batch.begin();
+            float scaledWidth = tituloTexture.getWidth() * 0.5f; // Reducir al 50% del tamaño original
+            float scaledHeight = tituloTexture.getHeight() * 0.5f; // Reducir al 50% del tamaño original
+            batch.draw(tituloTexture, 250, 180, scaledWidth, scaledHeight);
+            batch.draw(playTexture, 600, 180);
+            batch.end();
+            return; // No continuar con el render del juego
+        }
+        
+        player.move = true;
+        if (Gdx.input.isKeyJustPressed(Input.Keys.R)) {
+            resetLevel();
+        }
+
+        // Cambiar a Level2 si no quedan estatuas
+        if (estatuas.isEmpty()) {
+            game.setScreen(new Level2(game));
+        }
     	
         // Fijar el texto en la pantalla
         batch.setProjectionMatrix(viewport.getCamera().combined); // Cambiar a coordenadas de pantalla
@@ -88,22 +161,15 @@ public class Level1 extends BaseLevel {
         font.draw(batch, "Destruye la estatua para salvar el bosque", 1750, 400); // Coordenadas fijas
         font.draw(batch, "R para reiniciar", 1000, 500); // Coordenadas fijas
         batch.end();
-    	
-        if (Gdx.input.isKeyJustPressed(Input.Keys.R)) {
-            resetLevel();
-        }
         
-        // Cambiar a Level2 si no quedan estatuas
-        if (estatuas.isEmpty()) {
-            game.setScreen(new Level2(game));
-        }
-
+        drawHealthBar(player);
     }
     
     @Override
     public void dispose() {
     	super.dispose();
     	font.dispose();
+        stage.dispose(); // Liberar recursos de la UI
     }
 
     private void resetLevel() {

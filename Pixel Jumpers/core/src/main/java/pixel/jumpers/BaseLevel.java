@@ -193,7 +193,5 @@ public abstract class BaseLevel implements Screen {
         	ground.draw(batch, ground_img_x, ground_img_y);
         }
         batch.end();
-
-        drawHealthBar(player);
     }
 }
