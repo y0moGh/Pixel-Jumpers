@@ -1,6 +1,7 @@
 package pixel.jumpers;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
@@ -38,25 +39,24 @@ public class PlayerAnimation {
     private Texture deathLeftSheet;
     private Texture idleLeftSheet;
 
-
     private float stateTime;
 
     public PlayerAnimation() {
         // Cargar texturas
-        walkSheetLeft = new Texture("run_left.png");
-        walkSheetRight = new Texture("run_right.png");
-        idleSheet = new Texture("Idle.png");
-        jumpSheet = new Texture("Jump.png");
-        jumpLeftSheet = new Texture("Jump_Left.png");
-        doubleJumpSheet = new Texture("Jump.png");
-        doubleJumpLeftSheet = new Texture("Jump_Left.png");
-        hurtSheet = new Texture("hurt.png");
-        deathSheet = new Texture("death.png");
-        attackSheet = new Texture("attack.png");
-        attackLeftSheet = new Texture("attack_left.png");
-        hurtLeftSheet = new Texture("hurt_left.png");
-        deathLeftSheet = new Texture("death_left.png");
-        idleLeftSheet = new Texture("Idle_left.png");
+        walkSheetLeft = new Texture("player_animations/run_left.png");
+        walkSheetRight = new Texture("player_animations/run_right.png");
+        idleSheet = new Texture("player_animations/Idle.png");
+        jumpSheet = new Texture("player_animations/Jump.png");
+        jumpLeftSheet = new Texture("player_animations/Jump_Left.png");
+        doubleJumpSheet = new Texture("player_animations/Jump.png");
+        doubleJumpLeftSheet = new Texture("player_animations/Jump_Left.png");
+        hurtSheet = new Texture("player_animations/hurt.png");
+        deathSheet = new Texture("player_animations/death.png");
+        attackSheet = new Texture("player_animations/attack.png");
+        attackLeftSheet = new Texture("player_animations/attack_left.png");
+        hurtLeftSheet = new Texture("player_animations/hurt_left.png");
+        deathLeftSheet = new Texture("player_animations/death_left.png");
+        idleLeftSheet = new Texture("player_animations/Idle_left.png");
 
         // Crear animaciones a partir de las texturas
         walkLeftAnimation = createAnimationFromSheet(walkSheetLeft, 32, 32, 0.1f);

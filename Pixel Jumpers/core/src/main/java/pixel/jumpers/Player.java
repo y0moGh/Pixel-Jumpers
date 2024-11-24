@@ -3,6 +3,7 @@ package pixel.jumpers;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
+import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
@@ -40,7 +41,20 @@ public class Player {
     private final float PUSH_DURATION = 0.2f; // Duraci n del empuje en segundos
     public boolean move = true;
 
-
+    // Sonidos
+    private Sound jumpSound;
+    private Sound attackSound;
+    private Sound airAttackSound;
+    private Sound walkSound;
+    private Sound deathSound;
+    private Sound hurtSound;
+    
+    private long walkSoundId = -1; // ID para el sonido actual
+    private boolean isOnGround = true; // Indica si el jugador está en el suelo
+    private boolean isOnPlatform = false;
+    private long deathSoundId = -1;
+    private long hurtSoundId = -1;
+    
     public Player(float x, float y) {
         position = new Vector2(x, y);
         velocity = new Vector2(0, 0);
@@ -53,18 +67,35 @@ public class Player {
             hitboxWidth, 
             hitboxHeight
         );
+        
+        // Cargar sonidos
+        jumpSound = Gdx.audio.newSound(Gdx.files.internal("sounds/jump.wav"));
+        attackSound = Gdx.audio.newSound(Gdx.files.internal("sounds/attack.wav"));
+        airAttackSound = Gdx.audio.newSound(Gdx.files.internal("sounds/Air_Attack.WAV"));
+        walkSound = Gdx.audio.newSound(Gdx.files.internal("sounds/walk.wav"));
+        deathSound = Gdx.audio.newSound(Gdx.files.internal("sounds/death.wav"));
+        hurtSound = Gdx.audio.newSound(Gdx.files.internal("sounds/hurt.wav"));
     }
 
-    public void update(float deltaTime, Camera camera, Array<Platform> platforms, Array<Enemy> enemies, Array<Pinchos> pinchos,  Array<Estatua> estatuas, Array<Ground> grounds) {
-        handleInput(deltaTime, enemies, estatuas);
+    public void update(float deltaTime, Camera camera, Array<Platform> platforms, Array<Enemy> enemies, Array<Pinchos> pinchos, Array<Estatua> estatuas, Array<Ground> grounds) {
         applyGravity(deltaTime);
         checkCollisions(platforms, enemies, pinchos, grounds);
+        handleInput(deltaTime, enemies, estatuas);
 
         // Actualiza la hitbox según la posición del personaje
         hitbox.setPosition(position.x + hitboxOffsetX, position.y + hitboxOffsetY);
 
         if (!isAlive) {
             deathStateTime += deltaTime;
+            if (walkSoundId != -1) {
+                walkSound.stop(walkSoundId); // Detener el sonido del caminar
+                walkSoundId = -1;
+            }
+
+            // Reproducir sonido de muerte solo una vez
+            if (deathSoundId == -1) {
+                deathSoundId = deathSound.play(); // Usa play() para evitar bucles
+            }
             return;
         }
 
@@ -79,9 +110,9 @@ public class Player {
                 attackStateTime = 0;
             }
         }
-        
+
         if (isBeingPushed) {
-            // Aplica la velocidad del empuje a la posici n
+            // Aplica la velocidad del empuje a la posición
             position.x += velocity.x * deltaTime;
 
             // Reduce el temporizador del empuje
@@ -89,11 +120,23 @@ public class Player {
 
             if (pushTimer <= 0) {
                 isBeingPushed = false;
-                velocity.x = 0; // Detener el movimiento despu s del empuje
+                velocity.x = 0; // Detener el movimiento después del empuje
             }
 
             // Salimos para evitar que se procesen otros movimientos
             return;
+        }
+        
+     // Temporizador para el estado de daño
+        if (isHurt && isAlive) { // Solo procesar daño si está vivo
+            if (hurtSoundId == -1) {
+                hurtSoundId = hurtSound.play(); // Usa play() para evitar bucles
+            }
+            hurtTimer -= Gdx.graphics.getDeltaTime();
+            if (hurtTimer <= 0) {
+                isHurt = false;
+                hurtSoundId = -1; // Resetear el ID del sonido al finalizar
+            }
         }
 
 
@@ -101,6 +144,7 @@ public class Player {
         camera.position.x = Math.max(camera.position.x, position.x + 32);
         camera.update();
     }
+
 
 
     public void draw(SpriteBatch batch) {
@@ -139,61 +183,91 @@ public class Player {
         }
     }
 
-
     protected void handleInput(float deltaTime, Array<Enemy> enemies, Array<Estatua> estatuas) {
         if(move) {
         	if (!isAlive || isAttacking) return; // Bloquea entrada si está muerto o atacando
 
+            boolean walking = false;
+            
             if (Gdx.input.isKeyPressed(Input.Keys.A)) {
                 position.x -= 200 * deltaTime;
-                isFacingRight = false; // Actualiza la dirección incluso si está en idle
+                isFacingRight = false;
+                walking = true;
             }
             if (Gdx.input.isKeyPressed(Input.Keys.D)) {
                 position.x += 200 * deltaTime;
                 isFacingRight = true;
+                walking = true;
             }
-            if (Gdx.input.isKeyJustPressed(Input.Keys.W)) {
-                if (!isJumping) {
-                    velocity.y = 500;
-                    isJumping = true;
-                } else if (!isDoubleJumping) {
-                    velocity.y = 500;
-                    isDoubleJumping = true;
+            if (walking && (isOnGround || isOnPlatform)) {
+                if (walkSoundId == -1) { // Si el sonido no está reproduciéndose
+                    walkSoundId = walkSound.loop(); // Reproduce en bucle
+                }
+            } else {
+                if (walkSoundId != -1) { // Detenemos el sonido si no estamos caminando o en el suelo
+                    walkSound.stop(walkSoundId);
+                    walkSoundId = -1;
                 }
             }
-            if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE) && attackCooldown <= 0) {
-                isAttacking = true;
-                attackStateTime = 0; // Reinicia el tiempo de la animación
-                attackCooldown = ATTACK_COOLDOWN_DURATION; // Activa el cooldown
-                attack(enemies, estatuas); // Ejecuta el ataque
-            }   	
+            }
+            
+	        if (Gdx.input.isKeyJustPressed(Input.Keys.W)) {
+	            if (!isJumping) {
+	                velocity.y = 500;
+	                isJumping = true;
+	                isOnPlatform = false; // Salimos de la plataforma al saltar
+	                jumpSound.play(0.5f);
+	            } else if (!isDoubleJumping) {
+	                velocity.y = 500;
+	                isDoubleJumping = true;
+	                jumpSound.play(0.5f);
+	            }
+	        }
+
+	        if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE) && attackCooldown <= 0) {
+	            isAttacking = true;
+	            attackStateTime = 0; // Reinicia el tiempo de la animación
+	            attackCooldown = ATTACK_COOLDOWN_DURATION; // Activa el cooldown
+
+	            boolean hitSomething = attack(enemies, estatuas); // Ejecuta el ataque y verifica impacto
+
+	            if (hitSomething) {
+	                attackSound.play(); // Sonido de impacto
+	            } else {
+	                airAttackSound.play(0.5f); // Sonido de ataque al aire
+	            }
+	        }   	
         }
 
-    }
 
     private void applyGravity(float deltaTime) {
         velocity.y -= 25;
         position.add(0, velocity.y * deltaTime);
+        isOnGround = false;
+        
         if (position.y <= 50) {
             position.y = 50;
             velocity.y = 0;
             isJumping = false;
             isDoubleJumping = false;
+            isOnGround = true; // Marca como en el suelo si toca la base
+            isOnPlatform = false;
         }
     }
-
-    private void checkCollisions(Array<Platform> platforms, Array<Enemy> enemies, Array<Pinchos> pinchos, Array<Ground> grounds) {
-        // Colisiones con plataformas
+    
+    private void checkCollisions(Array<Platform> platforms, Array<Enemy> enemies, Array<Pinchos> pinchos, Array<Ground> grounds) {	
+    	// Colisiones con plataformas
         for (Platform platform : platforms) {
             if (hitbox.overlaps(platform.getBounds()) && velocity.y <= 0) {
                 position.y = platform.getBounds().y + platform.getBounds().height - hitboxOffsetY;
                 velocity.y = 0;
                 isJumping = false;
                 isDoubleJumping = false;
+                isOnPlatform = true;
                 break;
             }
         }
-
+        
      // Colisiones con enemigos
         for (Enemy enemy : enemies) {
             if (hitbox.overlaps(enemy.getBounds()) && isAlive && !isHurt && !isBeingPushed) {
@@ -218,7 +292,7 @@ public class Player {
             }
         }
 
-        // Colisiones con pinchos
+     // Colisiones con pinchos
         for (Pinchos pincho : pinchos) {
             if (hitbox.overlaps(pincho.getBounds())) {
                 if (velocity.y <= 0) { // Si el jugador cae o está sobre los pinchos
@@ -228,55 +302,68 @@ public class Player {
                     isDoubleJumping = false;
                 }
 
-                if (!isHurt) { // Daño al colisionar
+                if (isAlive) { // Solo manejar daño si el jugador está vivo
                     health -= 100;
-                    isHurt = true;
-                    hurtTimer = HURT_DURATION;
 
-                    if (health <= 0) {
+                    if (health <= 0) { // Si la salud llega a 0, el jugador muere
                         health = 0;
                         isAlive = false;
+
+                        // Reproduce el sonido de daño solo una vez al morir
+                        if (hurtSoundId == -1) {
+                            hurtSoundId = hurtSound.play();
+                        }
+
+                        // Opcional: puedes añadir efectos adicionales al morir
+                        isHurt = false; // Resetea el estado de daño
+                        hurtTimer = 0;  // Reinicia el temporizador de daño
+                    } else if (!isHurt) { // Si no muere, pero recibe daño
+                        isHurt = true;
+                        hurtTimer = HURT_DURATION;
+
+                        // Reproduce el sonido de daño
+                        if (hurtSoundId == -1) {
+                            hurtSoundId = hurtSound.play();
+                        }
                     }
                 }
-                break;
+                break; // Sal del bucle si hay colisión
             }
         }
 
-        // Temporizador para el estado de daño
-        if (isHurt) {
-            hurtTimer -= Gdx.graphics.getDeltaTime();
-            if (hurtTimer <= 0) {
-                isHurt = false;
-            }
-        }
     }
 
-    public void attack(Array<Enemy> enemies, Array<Estatua> estatuas) {
-        float attackRange = 30f; // Rango de ataque en p xeles
+    public boolean attack(Array<Enemy> enemies, Array<Estatua> estatuas) {
+        float attackRange = 30f; // Rango de ataque en píxeles
+        boolean hitSomething = false; // Indica si el ataque golpeó algo
 
-        // Define el  area del ataque
+        // Define el área del ataque
         Rectangle attackBounds = new Rectangle(position.x - attackRange / 2, position.y, 64 + attackRange, 64);
 
-        // Da o y empuje a enemigos
+        // Daño y empuje a enemigos
         for (Enemy enemy : enemies) {
             if (attackBounds.overlaps(enemy.getBounds())) {
-                enemy.takeDamage(25); // Inflige 25 de da o al enemigo
+                hitSomething = true; // Se golpeó un enemigo
+                enemy.takeDamage(25); // Inflige 25 de daño al enemigo
 
-                // Calcula la direcci n del empuje
+                // Calcula la dirección del empuje
                 float pushDirection = position.x < enemy.getX() ? 1 : -1; // Empuja hacia la derecha o izquierda
 
                 // Aplica el empuje al enemigo
-                enemy.applyPush(pushDirection, 100, 0.2f); // Direcci n, velocidad y duraci n del empuje
+                enemy.applyPush(pushDirection, 100, 0.2f); // Dirección, velocidad y duración del empuje
             }
         }
 
-        // Da o a estatuas
+        // Daño a estatuas
         for (Estatua estatua : estatuas) {
             if (attackBounds.overlaps(estatua.getBounds())) {
+                hitSomething = true; // Se golpeó una estatua
                 estatuas.removeValue(estatua, true); // Destruir la estatua
                 break; // Detenemos el bucle si una estatua es destruida
             }
         }
+
+        return hitSomething; // Retorna si se golpeó algo
     }
 
     
@@ -317,5 +404,14 @@ public class Player {
         health = 100;  // Restablecer salud
         hurtTimer = 0;  // Reiniciar el temporizador de daño
         isHurt = false;  // Asegurarse de que no esté en estado de herido
+        isAlive = true;  // Asegurarse de que el personaje esté vivo
+        deathStateTime = 0; // Reiniciar el tiempo de la animación de muerte
+
+        // Detener el sonido de muerte si está activo
+        if (deathSoundId != -1) {
+            deathSound.stop(deathSoundId); // Detener sonido
+            deathSoundId = -1;             // Resetear el ID del sonido
+        }
     }
+
 }

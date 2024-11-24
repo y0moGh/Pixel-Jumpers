@@ -15,11 +15,11 @@ public class EnemyAnimation {
 
     public EnemyAnimation() {
         // Cargar las texturas para las animaciones del enemigo
-        Texture walkSheetLeft = new Texture("enemy_run_left.png");
-        Texture walkSheetRight = new Texture("enemy_run_right.png");
-        Texture idleSheet = new Texture("enemy_idle.png");
-        Texture hurtSheet = new Texture("enemy_hurt.png");
-        Texture deathSheet = new Texture("enemy_death.png"); // Nueva textura para muerte
+        Texture walkSheetLeft = new Texture("enemy_animations/enemy_run_left.png");
+        Texture walkSheetRight = new Texture("enemy_animations/enemy_run_right.png");
+        Texture idleSheet = new Texture("enemy_animations/enemy_idle.png");
+        Texture hurtSheet = new Texture("enemy_animations/enemy_hurt.png");
+        Texture deathSheet = new Texture("enemy_animations/enemy_death.png"); // Nueva textura para muerte
 
         // Dividir las hojas de sprites en frames y crear las animaciones
         walkLeftAnimation = createAnimationFromSheet(walkSheetLeft, 32, 32, 0.1f);

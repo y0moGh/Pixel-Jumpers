@@ -2,6 +2,7 @@ package pixel.jumpers;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
+import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 
@@ -16,18 +17,24 @@ public class Level2 extends BaseLevel {
     private final float[][] PINCHOS_FLOTANTES_POSITIONS = {
         {450, 220}, {750, 320}, {1050, 180}, {1400, 370}, {1800, 270}
     };
+    
+    private Music backgroundMusic; // Música de fondo
 
     public Level2(Main game) {
         super(game);
         shapeRenderer = new ShapeRenderer();
         player = new Player(PLAYER_START_X, PLAYER_START_Y);
 
-        fullBackgroundTexture = new Texture("full_background_grey.png");
+        fullBackgroundTexture = new Texture("semi_grey_background_2.png");
+        
+        // Cargar la música
+        backgroundMusic = Gdx.audio.newMusic(Gdx.files.internal("music/Level2.MP3"));
+        backgroundMusic.setLooping(true); // Configurar para que se repita en bucle
 
         // Agregar plataformas
         for (float[] pos : PLATFORM_POSITIONS) {
             platforms.add(new Platform(
-                platformTexture, 
+                platformSemiGreyTexture, 
                 pos[0], 
                 pos[1], 
                 platform_size_x, 
@@ -121,7 +128,7 @@ public class Level2 extends BaseLevel {
         platforms.clear();
         for (float[] pos : PLATFORM_POSITIONS) {
             platforms.add(new Platform(
-                platformTexture,
+                platformSemiGreyTexture,
                 pos[0],
                 pos[1],
                 platform_size_x,
@@ -192,12 +199,25 @@ public class Level2 extends BaseLevel {
 
     @Override
     public void show() {
-        // Se ejecuta al mostrar la pantalla por primera vez
+        // Reproducir música al mostrar el nivel
+        if (!backgroundMusic.isPlaying()) {
+            backgroundMusic.play();
+        }
     }
 
     @Override
     public void hide() {
-        // Se ejecuta al ocultar la pantalla
+        // Detener la música al ocultar el nivel
+        if (backgroundMusic.isPlaying()) {
+            backgroundMusic.stop();
+        }
+    }
+    
+    @Override
+    public void dispose() {
+        // Liberar recursos de la música
+        backgroundMusic.dispose();
+        super.dispose();
     }
 
     @Override

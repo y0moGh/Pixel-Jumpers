@@ -2,6 +2,7 @@ package pixel.jumpers;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
+import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
@@ -57,6 +58,11 @@ public class Level1 extends BaseLevel {
         // Nueva textura para el título
         private Texture tituloTexture;
         private Texture playTexture;
+
+        // Musicas
+        private Music menuMusic;
+        private Music level1Music;
+        private boolean isLevelMusicFadingOut = false;
         
     public Level1(Main game) {
         super(game); // Heredamos el constructor de la clase padre
@@ -92,8 +98,19 @@ public class Level1 extends BaseLevel {
         // Crear el menú inicial
         createMenu();
         
+        // Cargar las musicas
+        menuMusic = Gdx.audio.newMusic(Gdx.files.internal("music/Menu.MP3"));
+        level1Music = Gdx.audio.newMusic(Gdx.files.internal("music/Level1.MP3"));
+
+        // Configuración inicial
+        menuMusic.setLooping(true);
+        level1Music.setLooping(true);
+
+        // Inicia la música del menú
+        menuMusic.play();
 
     }
+    
     
     private void createMenu() {
         stage = new Stage(viewport); // Usar el viewport del nivel
@@ -116,60 +133,96 @@ public class Level1 extends BaseLevel {
             public void clicked(InputEvent event, float x, float y) {
                 isMenuActive = false; // Salir del menú
                 Gdx.input.setInputProcessor(null); // Habilitar entrada estándar del juego
+
+                // Iniciar transición de música
+                new Thread(() -> {
+                    // Reducir volumen del menú gradualmente
+                    for (float vol = 1.0f; vol > 0; vol -= 0.1f) {
+                        menuMusic.setVolume(vol);
+                        try {
+                            Thread.sleep(100); // Esperar 100ms entre decrementos
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                    menuMusic.stop();
+
+                    // Iniciar música del nivel
+                    level1Music.play();
+                }).start();
             }
         });
 
         stage.addActor(playButton);
     }
+
     
     @Override
     public void render(float delta) {
-    	super.render(delta);
-    	
-    	  // Si el menú está activo, dibujar el menú
+        super.render(delta);
+
         if (isMenuActive) {
-            player.move = false;
+            // Lógica del menú (ya existente)
+        	player.move = false;
             stage.act(delta);
             stage.draw();
-
-            // Dibujar la imagen del título
             batch.begin();
-            float scaledWidth = tituloTexture.getWidth() * 0.5f; // Reducir al 50% del tamaño original
-            float scaledHeight = tituloTexture.getHeight() * 0.5f; // Reducir al 50% del tamaño original
+            float scaledWidth = tituloTexture.getWidth() * 0.5f;
+            float scaledHeight = tituloTexture.getHeight() * 0.5f;
             batch.draw(tituloTexture, 250, 180, scaledWidth, scaledHeight);
             batch.draw(playTexture, 600, 180);
             batch.end();
-            return; // No continuar con el render del juego
+            return;
         }
-        
+
         player.move = true;
+
+        // Si no quedan estatuas y la música aún no está en *fade out*
+        if (estatuas.isEmpty() && !isLevelMusicFadingOut) {
+            isLevelMusicFadingOut = true; // Marcar que comenzó el *fade out*
+            new Thread(() -> {
+                for (float vol = 1.0f; vol > 0; vol -= 0.1f) {
+                    level1Music.setVolume(vol);
+                    try {
+                        Thread.sleep(25); // *Fade out* más rápido
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+                level1Music.stop();
+            }).start();
+        }
+
+        // Cambiar a Level2 después del *fade out*
+        if (estatuas.isEmpty() && isLevelMusicFadingOut && !level1Music.isPlaying()) {
+            game.setScreen(new Level2(game));
+        }
+
+        // Resto de la lógica del nivel (ya existente)
         if (Gdx.input.isKeyJustPressed(Input.Keys.R)) {
             resetLevel();
         }
 
-        // Cambiar a Level2 si no quedan estatuas
-        if (estatuas.isEmpty()) {
-            game.setScreen(new Level2(game));
-        }
-    	
-        // Fijar el texto en la pantalla
-        batch.setProjectionMatrix(viewport.getCamera().combined); // Cambiar a coordenadas de pantalla
+        batch.setProjectionMatrix(viewport.getCamera().combined);
         batch.begin();
-        font.draw(batch, "W saltar", 100, 250); // Coordenadas fijas
-        font.draw(batch, "W + W doble salto!", 400, 450); // Coordenadas fijas
-        font.draw(batch, "Cuidado! Space atacar", 1200, 200); // Coordenadas fijas
-        font.draw(batch, "Destruye la estatua para salvar el bosque", 1750, 400); // Coordenadas fijas
-        font.draw(batch, "R para reiniciar", 1000, 500); // Coordenadas fijas
+        font.draw(batch, "W saltar", 100, 250);
+        font.draw(batch, "W + W doble salto!", 400, 450);
+        font.draw(batch, "Cuidado! Space atacar", 1200, 200);
+        font.draw(batch, "Destruye la estatua para salvar el bosque", 1750, 400);
+        font.draw(batch, "R para reiniciar", 1000, 500);
         batch.end();
-        
+
         drawHealthBar(player);
     }
+
     
     @Override
     public void dispose() {
     	super.dispose();
     	font.dispose();
         stage.dispose(); // Liberar recursos de la UI
+        menuMusic.dispose();
+        level1Music.dispose();
     }
 
     private void resetLevel() {
