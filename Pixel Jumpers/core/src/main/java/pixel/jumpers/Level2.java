@@ -19,6 +19,7 @@ public class Level2 extends BaseLevel {
     };
     
     private Music backgroundMusic; // Música de fondo
+    private boolean isLevelMusicFadingOut = false;
 
     public Level2(Main game) {
         super(game);
@@ -107,10 +108,27 @@ public class Level2 extends BaseLevel {
             resetLevel();
         }
         
-        /* Cambiar a Level3 si no quedan estatuas
-        if (estatuas.isEmpty()) {
+        // Cambiar a Level3 si no quedan estatuas
+        // Si no quedan estatuas y la música aún no está en *fade out*
+        if (estatuas.isEmpty() && !isLevelMusicFadingOut) {
+            isLevelMusicFadingOut = true; // Marcar que comenzó el *fade out*
+            new Thread(() -> {
+                for (float vol = 1.0f; vol > 0; vol -= 0.1f) {
+                	backgroundMusic.setVolume(vol);
+                    try {
+                        Thread.sleep(50); // *Fade out* más rápido
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+                backgroundMusic.stop();
+            }).start();
+        }
+
+        // Cambiar a Level2 después del *fade out*
+        if (estatuas.isEmpty() && isLevelMusicFadingOut && !backgroundMusic.isPlaying()) {
             game.setScreen(new Level3(game));
-        } */
+        }
         
         drawHealthBar(player);
     }

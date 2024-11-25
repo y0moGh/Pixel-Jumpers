@@ -356,7 +356,7 @@ public class Player {
 
         // Daño a estatuas
         for (Estatua estatua : estatuas) {
-            if (attackBounds.overlaps(estatua.getBounds())) {
+            if (attackBounds.overlaps(estatua.getBounds()) && estatua.isBreakable) {
                 hitSomething = true; // Se golpeó una estatua
                 estatuas.removeValue(estatua, true); // Destruir la estatua
                 break; // Detenemos el bucle si una estatua es destruida
@@ -378,6 +378,10 @@ public class Player {
         if (position.x + 64 > cameraRightEdge) { // 64 es el ancho del jugador
             position.x = cameraRightEdge - 64;
         }
+    }
+    
+    public Rectangle getBounds() {
+        return new Rectangle(position.x, position.y, hitboxWidth, hitboxHeight);
     }
     
     public float getX() {

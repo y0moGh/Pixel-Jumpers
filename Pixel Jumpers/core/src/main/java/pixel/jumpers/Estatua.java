@@ -8,7 +8,8 @@ public class Estatua {
     private Texture texture;
     private Rectangle bounds;
     private boolean isDestroyed; // Indica si la estatua ha sido destruida
-
+    public boolean isBreakable = true;
+    
     public Estatua(Texture texture, float x, float y, float imageWidth, float imageHeight, float hitboxWidth, float hitboxHeight) {
         this.texture = texture;
         this.isDestroyed = false;

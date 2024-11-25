@@ -40,6 +40,7 @@ public abstract class BaseLevel implements Screen {
     protected Texture groundTexture;
     protected Texture platformGreyTexture;
     protected Texture platformSemiGreyTexture;
+    protected Texture estatuaFinalTexture;
     
     protected int pincho_img_x = 100;
     protected int pincho_img_y = 30;
@@ -80,6 +81,7 @@ public abstract class BaseLevel implements Screen {
         pinchosFlotantesTexture = new Texture("pinchos_flotantes.png");
         enemyTexture = new Texture("enemy_animations/enemy.png");
         estatuaTexture = new Texture("statue.png");
+        estatuaFinalTexture = new Texture("Final_statue.png");
         groundTexture = new Texture("ground3.png");
         
         enemies = new Array<>();
