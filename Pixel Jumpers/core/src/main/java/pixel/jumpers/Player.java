@@ -16,7 +16,7 @@ public class Player {
     private Vector2 velocity;
     private boolean isJumping;
     private boolean isDoubleJumping;
-    private int health = 100;
+    private int health = 9999999;
     private boolean isHurt = false;
     private float hurtTimer = 0;
     private final float HURT_DURATION = 0.5f;
@@ -54,6 +54,8 @@ public class Player {
     private boolean isOnPlatform = false;
     private long deathSoundId = -1;
     private long hurtSoundId = -1;
+    private boolean mute = false;
+    private int gravity = 25;
     
     public Player(float x, float y) {
         position = new Vector2(x, y);
@@ -93,7 +95,7 @@ public class Player {
             }
 
             // Reproducir sonido de muerte solo una vez
-            if (deathSoundId == -1) {
+            if (deathSoundId == -1 && !mute) {
                 deathSoundId = deathSound.play(); // Usa play() para evitar bucles
             }
             return;
@@ -129,7 +131,7 @@ public class Player {
         
      // Temporizador para el estado de daño
         if (isHurt && isAlive) { // Solo procesar daño si está vivo
-            if (hurtSoundId == -1) {
+            if (hurtSoundId == -1 && !mute) {
                 hurtSoundId = hurtSound.play(); // Usa play() para evitar bucles
             }
             hurtTimer -= Gdx.graphics.getDeltaTime();
@@ -200,27 +202,27 @@ public class Player {
                 walking = true;
             }
             if (walking && (isOnGround || isOnPlatform)) {
-                if (walkSoundId == -1) { // Si el sonido no está reproduciéndose
+                if (walkSoundId == -1 && !mute) { // Si el sonido no está reproduciéndose
                     walkSoundId = walkSound.loop(); // Reproduce en bucle
                 }
             } else {
-                if (walkSoundId != -1) { // Detenemos el sonido si no estamos caminando o en el suelo
+                if (walkSoundId != -1 && !mute) { // Detenemos el sonido si no estamos caminando o en el suelo
                     walkSound.stop(walkSoundId);
                     walkSoundId = -1;
                 }
             }
             }
             
-	        if (Gdx.input.isKeyJustPressed(Input.Keys.W)) {
+	        if (Gdx.input.isKeyJustPressed(Input.Keys.W) ) {
 	            if (!isJumping) {
 	                velocity.y = 500;
 	                isJumping = true;
 	                isOnPlatform = false; // Salimos de la plataforma al saltar
-	                jumpSound.play(0.5f);
+	                if(!mute) jumpSound.play(0.5f);
 	            } else if (!isDoubleJumping) {
 	                velocity.y = 500;
 	                isDoubleJumping = true;
-	                jumpSound.play(0.5f);
+	                if(!mute) jumpSound.play(0.5f);
 	            }
 	        }
 
@@ -232,16 +234,16 @@ public class Player {
 	            boolean hitSomething = attack(enemies, estatuas); // Ejecuta el ataque y verifica impacto
 
 	            if (hitSomething) {
-	                attackSound.play(); // Sonido de impacto
+	            	if(!mute) attackSound.play(); // Sonido de impacto
 	            } else {
-	                airAttackSound.play(0.5f); // Sonido de ataque al aire
+	            	if(!mute) airAttackSound.play(0.5f); // Sonido de ataque al aire
 	            }
 	        }   	
         }
 
 
     private void applyGravity(float deltaTime) {
-        velocity.y -= 25;
+        velocity.y -= gravity;
         position.add(0, velocity.y * deltaTime);
         isOnGround = false;
         
@@ -311,7 +313,7 @@ public class Player {
 
                         // Reproduce el sonido de daño solo una vez al morir
                         if (hurtSoundId == -1) {
-                            hurtSoundId = hurtSound.play();
+                        	if(!mute) hurtSoundId = hurtSound.play();
                         }
 
                         // Opcional: puedes añadir efectos adicionales al morir
@@ -323,7 +325,7 @@ public class Player {
 
                         // Reproduce el sonido de daño
                         if (hurtSoundId == -1) {
-                            hurtSoundId = hurtSound.play();
+                        	if(!mute) hurtSoundId = hurtSound.play();
                         }
                     }
                 }
@@ -402,6 +404,10 @@ public class Player {
     
     public int getHealth() {
     	return health;
+    }
+    
+    public void mute() {
+    	mute = true;
     }
     
     public void reset() {

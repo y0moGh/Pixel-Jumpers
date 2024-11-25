@@ -3,7 +3,9 @@ package pixel.jumpers;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.audio.Music;
+import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
 
 public class Level3 extends BaseLevel {
 
@@ -11,7 +13,8 @@ public class Level3 extends BaseLevel {
     private final float PLAYER_START_Y = 100;
 
     private Music backgroundMusic;
-    private boolean isLevelMusicFadingOut = false;
+    private Music badEndingMusic;
+    private Music goodEndingMusic;
     private Button button; // Declarar el botón como atributo de la clase
     private Button button2;
     private Button button3;
@@ -63,17 +66,57 @@ public class Level3 extends BaseLevel {
 	// Estatua (final del nivel)
 	private final float ESTATUA_START_X = 830;
 	private final float ESTATUA_START_Y = 270;
+	
+    private boolean timerStarted = true;
+    private float timer = 60f; // Temporizador de 30 segundos
+    private float backgroundChangeInterval = 2.5f; // Intervalo de cambio de fondo
+    private float backgroundChangeTimer = 0f;
+    private Texture semiGreyBackgroundTexture;
+    private Texture fullBackgroundGreyTexture; // Declarar al nivel de clase
+    private Texture colorBackgroundTexture; // Declarar al nivel de clase
+    Texture temp2;
+    
+    private String[] messages = {
+            "Si no me apresuro...",
+            "El bosque será destruido por siempre..."
+        };
+        private int currentMessageIndex = 0;
+        private float messageTimer = 2f;
+        private float messageDisplayTime = 2f;
 
+    private boolean levelComplete = false; // Bandera de victoria
+    private boolean win = false;
+    private BitmapFont defaultFont;
+    private BitmapFont timerFont;
+    private float delayTimer = 0f; // Variable para controlar el tiempo de espera
+    private boolean isGameOverTriggered = false; // Para asegurarte de que solo inicie una vez
+    private boolean badEndingMusicPlayed = false;
+    private boolean goodEndingMusicPlayed = false;
+    private boolean alreadyReseted = false;
+    
     public Level3(Main game) {
         super(game);
 
         // Configuración inicial
         player = new Player(PLAYER_START_X, PLAYER_START_Y);
-        fullBackgroundTexture = new Texture("full_background.png");
+        colorBackgroundTexture = new Texture("full_background.png");
+        semiGreyBackgroundTexture = new Texture("semi_grey_background_2.png");   
+        fullBackgroundGreyTexture = new Texture("full_background_grey.png");
+        fullBackgroundTexture = semiGreyBackgroundTexture;
+        temp2 = colorBackgroundTexture;
 
         // Cargar música de fondo
         backgroundMusic = Gdx.audio.newMusic(Gdx.files.internal("music/Level3.MP3"));
         backgroundMusic.setLooping(true);
+        backgroundMusic.setVolume(0.5f);
+        
+        badEndingMusic = Gdx.audio.newMusic(Gdx.files.internal("music/bad_ending.MP3"));
+        goodEndingMusic = Gdx.audio.newMusic(Gdx.files.internal("music/win_sound.MP3"));
+        
+        // Inicializar la fuente predeterminada
+        defaultFont = new BitmapFont();
+        timerFont = new BitmapFont();
+        timerFont.getData().setScale(1.5f); // Escala el tamaño del texto
         
         // Nueva estatua
         estatuas.add(new Estatua(estatuaFinalTexture, ESTATUA_START_X, ESTATUA_START_Y, estatua_img_x,  estatua_img_y, estatua_htb_x, estatua_htb_y));
@@ -151,57 +194,133 @@ public class Level3 extends BaseLevel {
     @Override
     public void render(float delta) {
         super.render(delta);
-        
-        if (Gdx.input.isKeyJustPressed(Input.Keys.R)) {
+
+        if (Gdx.input.isKeyJustPressed(Input.Keys.R) && !levelComplete) {
             resetLevel();
         }
-        // Verificar si el jugador cae fuera del mapa
+
         if (player.getY() < 0) {
-            resetLevel(); // Reiniciar nivel si el jugador cae
+            resetLevel();
         }
         
-        // Actualiza el estado del botón
+        // Lógica del temporizador al perder
+        if (player.getHealth() == 0 && levelComplete && !win) {
+            if (!isGameOverTriggered) {
+                isGameOverTriggered = true; // Marcar que el temporizador ha comenzado
+                delayTimer = 2f; // Configurar el temporizador a 2 segundos
+            } else {
+                delayTimer -= delta; // Reducir el tiempo
+                if (delayTimer <= 0) {
+                    game.setScreen(new Level1(game)); // Cambiar de nivel después de 2 segundos
+                    badEndingMusic.stop();
+                }
+            }
+        }
+        else if(levelComplete && win) {
+        	if (!isGameOverTriggered) {
+                isGameOverTriggered = true; // Marcar que el temporizador ha comenzado
+                delayTimer = 5f; // Configurar el temporizador a 2 segundos
+            } else {
+                delayTimer -= delta; // Reducir el tiempo
+                if (delayTimer <= 0) {
+                    game.setScreen(new End(game)); // Cambiar de nivel después de 2 segundos
+                }
+            }
+        }
+
         boolean isPressed1 = button.update(player.getBounds(), delta);
         boolean isPressed2 = button2.update(player.getBounds(), delta);
         boolean isPressed3 = button3.update(player.getBounds(), delta);
-        
-        if(isPressed1 && isPressed2 && isPressed3) {
+
+        if (isPressed1 && isPressed2 && isPressed3) {
             for (Estatua estatua : estatuas) {
                 estatua.isBreakable = true;
             }
-    }
-
-        
-        batch.begin();
-        button.render(batch, 32, 32); // Tamaño de la imagen: 32x32
-        button2.render(batch, 32, 32);
-        button3.render(batch, 32, 32);
-        batch.end();
-
-        drawHealthBar(player);
-        
-        
-        // Cambiar a End o Level1 si no quedan estatuas
-        // Si no quedan estatuas y la música aún no está en *fade out*
-        if (estatuas.isEmpty() && !isLevelMusicFadingOut) {
-        	player.move = false;
-            isLevelMusicFadingOut = true; // Marcar que comenzó el *fade out*
-            new Thread(() -> {
-                for (float vol = 1.0f; vol > 0; vol -= 0.1f) {
-                	backgroundMusic.setVolume(vol);
-                    try {
-                        Thread.sleep(2000); // *Fade out* más rápido
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                }
-                backgroundMusic.stop();
-            }).start();
         }
 
-        // Cambiar a Level2 después del *fade out*
-        if (estatuas.isEmpty() && isLevelMusicFadingOut && !backgroundMusic.isPlaying()) {
-            game.setScreen(new Level1(game));
+        if (timer > 0 && !levelComplete) {
+            // Temporizador y cambio de fondo
+            if ((timerStarted && currentMessageIndex >= messages.length) || timerStarted && alreadyReseted) {
+                timer -= delta;
+
+                if (timer <= 0) {
+                    levelComplete = true;
+                }
+            }
+            
+            if (backgroundChangeTimer >= backgroundChangeInterval) {
+                backgroundChangeTimer = 0f;
+                Texture temp = fullBackgroundTexture;
+                fullBackgroundTexture = temp2;
+                temp2 = temp;
+            }
+            backgroundChangeTimer += delta;
+        }
+
+        batch.begin();
+
+        if ((currentMessageIndex < messages.length) && !alreadyReseted) {
+            defaultFont.draw(batch, messages[currentMessageIndex], player.getX(), player.getY() + 70);
+            messageTimer -= delta;
+            if (messageTimer <= 0) {
+                currentMessageIndex++;
+                messageTimer = messageDisplayTime;
+            }
+        } else if (timerStarted) {
+            timerFont.draw(batch, "Tiempo restante: " + (int) timer, camera.position.x - 50, camera.position.y + 320);
+        }
+
+        if (estatuas.isEmpty()) {
+        	winReset();
+        	levelComplete = true;
+        	win = true;
+        }
+        else if(levelComplete && !win) {
+        	lostReset();
+        }
+        else if (!levelComplete) {
+            button.render(batch, 32, 32); // Tamaño de la imagen: 32x32
+            button2.render(batch, 32, 32);
+            button3.render(batch, 32, 32);
+        }
+
+        batch.end();
+        drawHealthBar(player);
+    }
+    
+    private void winReset() {
+    	enemies.clear();
+    	pinchos.clear();
+    	backgroundMusic.pause();
+    	fullBackgroundTexture = colorBackgroundTexture;
+    	
+    	if(!goodEndingMusicPlayed) {
+    		goodEndingMusic.play();
+    		goodEndingMusicPlayed = true;
+    	}
+    }
+    
+    private void lostReset() {
+    	fullBackgroundTexture = fullBackgroundGreyTexture; 	
+    	platformTexture = platformGreyTexture;
+        // Reiniciar plataformas
+        platforms.clear();
+        for (float[] pos : PLATFORM_POSITIONS) {
+            platforms.add(new Platform(
+                platformTexture, 
+                pos[0], 
+                pos[1], 
+                platform_size_x, 
+                platform_size_y
+            ));
+        }
+        enemies.clear();
+        backgroundMusic.pause();
+        player.mute();
+        // Reproducir música de "badEnding" solo una vez
+        if (!badEndingMusicPlayed) {
+            badEndingMusic.play();
+            badEndingMusicPlayed = true; // Marcar que ya se reprodujo
         }
     }
 
@@ -229,7 +348,7 @@ public class Level3 extends BaseLevel {
         // Reiniciar enemigos
         enemies.clear();
         for (int i : PLATFORMS_WITH_ENEMIES) {
-            float enemyX = PLATFORM_POSITIONS[i][0] + 20;
+            float enemyX = PLATFORM_POSITIONS[i][0];
             float enemyY = PLATFORM_POSITIONS[i][1] + 20;
             enemies.add(new Enemy(
                 enemyTexture, 
@@ -278,6 +397,12 @@ public class Level3 extends BaseLevel {
             estatua.isBreakable = false;
         }
         
+        backgroundChangeTimer = 0f;
+        timerStarted = true;
+        currentMessageIndex = 0;
+        messageTimer = messageDisplayTime;
+        levelComplete = false;
+        alreadyReseted = true;
     }
 
     @Override

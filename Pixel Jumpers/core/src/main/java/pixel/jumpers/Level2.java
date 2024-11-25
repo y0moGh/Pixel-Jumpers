@@ -20,6 +20,10 @@ public class Level2 extends BaseLevel {
     
     private Music backgroundMusic; // Música de fondo
     private boolean isLevelMusicFadingOut = false;
+    
+    private float backgroundChangeInterval = 5f; // Intervalo de cambio de fondo
+    private float backgroundChangeTimer = 0f;
+    private Texture fullGreybackgroundTexture;
 
     public Level2(Main game) {
         super(game);
@@ -27,6 +31,7 @@ public class Level2 extends BaseLevel {
         player = new Player(PLAYER_START_X, PLAYER_START_Y);
 
         fullBackgroundTexture = new Texture("semi_grey_background_2.png");
+        fullGreybackgroundTexture = new Texture("full_background_grey.png");
         
         // Cargar la música
         backgroundMusic = Gdx.audio.newMusic(Gdx.files.internal("music/Level2.MP3"));
@@ -128,6 +133,15 @@ public class Level2 extends BaseLevel {
         // Cambiar a Level2 después del *fade out*
         if (estatuas.isEmpty() && isLevelMusicFadingOut && !backgroundMusic.isPlaying()) {
             game.setScreen(new Level3(game));
+        }
+        
+        backgroundChangeTimer += delta;
+
+        if (backgroundChangeTimer >= backgroundChangeInterval) {
+            backgroundChangeTimer = 0f;
+            Texture temp = fullBackgroundTexture;
+            fullBackgroundTexture = fullGreybackgroundTexture;
+            fullGreybackgroundTexture = temp;
         }
         
         drawHealthBar(player);
