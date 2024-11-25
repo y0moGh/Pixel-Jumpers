@@ -16,7 +16,7 @@ public class Player {
     private Vector2 velocity;
     private boolean isJumping;
     private boolean isDoubleJumping;
-    private int health = 9999999;
+    private int health = 100;
     private boolean isHurt = false;
     private float hurtTimer = 0;
     private final float HURT_DURATION = 0.5f;
