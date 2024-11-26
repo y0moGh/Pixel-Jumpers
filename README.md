@@ -1,88 +1,41 @@
+# Manual de Instalación y Uso para Pixel Jumpers (Desarrollado con Eclipse)
 
-**Manual de Instalación y Uso de Pixel Jumpers**
+## **Descripción del Proyecto**
+**Pixel Jumpers** es un videojuego 2D desarrollado en Java. El proyecto se está creando en el entorno de desarrollo Eclipse, y utiliza varias librerías como libGDX.
 
-**Descripción del Proyecto**
+---
 
-Pixel Jumpers es un videojuego 2D desarrollado en Java utilizando el framework libGDX. El proyecto fue creado por Ulises De Lio Cameroni, Sofía Brussa y Juan Ignacio Ferrando Villoslada. 
+## **Requisitos Previos**
+Antes de comenzar, asegúrese de tener instalados los siguientes componentes:
 
-**Requisitos Previos**
+- **Eclipse IDE for Java Developers:** Descárguelo desde [eclipse.org](https://www.eclipse.org/downloads/).
+- **Java Development Kit (JDK):** Recomendado JDK 8 o superior. [Descargar JDK](https://www.oracle.com/java/technologies/javase-downloads.html).
+- **Git:** Para clonar el repositorio. [Descargar Git](https://git-scm.com/downloads).
+- **libGDX Framework:** Asegúrese de que el entorno esté configurado para usar libGDX en Eclipse.
 
-Antes de proceder con la instalación, asegúrese de tener lo siguiente instalado en su sistema:
+---
 
-- **Java Development Kit (JDK):** Se recomienda la versión 8 o superior. Puede descargarlo desde el [sitio oficial de Oracle](https://www.oracle.com/java/technologies/javase-downloads.html).
+## **Pasos de Instalación**
 
-- **Gradle:** Es la herramienta de construcción utilizada en este proyecto. Descárguelo desde [aquí](https://gradle.org/install/).
+### **1. Clonar el Repositorio**
+Abra una terminal o consola y ejecute el siguiente comando para clonar el proyecto en su máquina local:
+```bash
+git clone https://github.com/y0moGh/Pixel-Jumpers.git
+```
 
-- **Git:** Para clonar el repositorio. Puede obtenerlo desde [este enlace](https://git-scm.com/downloads).
+### **2. Importar el Proyecto en Eclipse**
+1. Abra Eclipse y seleccione **Archivo > Importar**.
+2. En la ventana emergente, elija **Proyecto de Gradle existente** o **Proyecto Java** según la configuración del repositorio.
+3. Navegue a la carpeta donde clonó el repositorio (`Pixel-Jumpers`) y haga clic en **Finalizar**.
 
-**Pasos de Instalación**
+### **3. Configurar Dependencias**
+Si el proyecto utiliza Gradle, Eclipse debería gestionar automáticamente las dependencias. De lo contrario:
+- Asegúrese de que las librerías de libGDX y cualquier otra dependencia estén correctamente configuradas en el `Build Path` del proyecto.
+- Para agregar librerías manualmente:
+  - Haga clic derecho en el proyecto en el Explorador de Eclipse.
+  - Seleccione **Propiedades > Java Build Path > Librerías > Agregar JARs o Agregar Librerías Externas**.
+  - Añada los archivos necesarios.
 
-1. **Clonar el Repositorio**
-
-   Abra una terminal y ejecute el siguiente comando para clonar el repositorio:
-
-   ```bash
-   git clone https://github.com/y0moGh/Pixel-Jumpers.git
-   ```
-
-2. **Navegar al Directorio del Proyecto**
-
-   Ingrese al directorio del proyecto:
-
-   ```bash
-   cd Pixel-Jumpers
-   ```
-
-3. **Construir el Proyecto con Gradle**
-
-   Ejecute el siguiente comando para compilar el proyecto:
-
-   ```bash
-   gradle build
-   ```
-
-   Este comando descargará las dependencias necesarias y compilará el proyecto.
-
-4. **Ejecutar el Juego**
-
-   Después de la compilación exitosa, puede ejecutar el juego con:
-
-   ```bash
-   gradle run
-   ```
-
-**Uso del Juego**
-
-Al iniciar el juego, se presentará la pantalla principal. Utilice las siguientes teclas para controlar al personaje:
-
-- **Flechas de dirección:** Mover al personaje hacia la izquierda o derecha.
-
-- **Barra espaciadora:** Saltar.
-
-- **Tecla 'P':** Pausar o reanudar el juego.
-
-**Contribuciones**
-
-Si desea contribuir al desarrollo de Pixel Jumpers, puede:
-
-- **Reportar errores:** Abra un 'Issue' en el repositorio de GitHub.
-
-- **Proponer mejoras:** Realice un 'Fork' del repositorio, implemente sus cambios y envíe un 'Pull Request'.
-
-**Contacto**
-
-Para consultas o sugerencias, puede contactar a los desarrolladores principales:
-
-- **Ulises De Lio Cameroni**
-
-- **Sofía Brussa**
-
-- **Juan Ignacio Ferrando Villoslada**
-
-A través de la sección de 'Issues' en el [repositorio de GitHub](https://github.com/y0moGh/Pixel-Jumpers/issues).
-
-**Licencia**
-
-Este proyecto está bajo la Licencia MIT. Para más detalles, consulte el archivo `LICENSE` en el repositorio.
-
-**Nota:** Asegúrese de tener las versiones correctas de las herramientas mencionadas para evitar problemas de compatibilidad. 
+### **4. Ejecutar el Proyecto**
+1. Haga clic derecho sobre el proyecto en Eclipse y seleccione **Run As > Java Application**.
+2. Si todo está configurado correctamente, el juego se ejecutará y mostrará la ventana principal.
