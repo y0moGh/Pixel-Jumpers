@@ -9,9 +9,7 @@
 Antes de comenzar, asegúrese de tener instalados los siguientes componentes:
 
 - **Eclipse IDE for Java Developers:** Descárguelo desde [eclipse.org](https://www.eclipse.org/downloads/).
-- **Java Development Kit (JDK):** Recomendado JDK 8 o superior. [Descargar JDK](https://www.oracle.com/java/technologies/javase-downloads.html).
 - **Git:** Para clonar el repositorio. [Descargar Git](https://git-scm.com/downloads).
-- **libGDX Framework:** Asegúrese de que el entorno esté configurado para usar libGDX en Eclipse.
 
 ---
 
@@ -25,11 +23,11 @@ git clone https://github.com/y0moGh/Pixel-Jumpers.git
 
 ### **2. Importar el Proyecto en Eclipse**
 1. Abra Eclipse y seleccione **Archivo > Importar**.
-2. En la ventana emergente, elija **Proyecto de Gradle existente** o **Proyecto Java** según la configuración del repositorio.
+2. En la ventana emergente, elija **Proyecto Java**
 3. Navegue a la carpeta donde clonó el repositorio (`Pixel-Jumpers`) y haga clic en **Finalizar**.
 
 ### **3. Configurar Dependencias**
-Si el proyecto utiliza Gradle, Eclipse debería gestionar automáticamente las dependencias. De lo contrario:
+Eclipse debería gestionar automáticamente las dependencias. De lo contrario:
 - Asegúrese de que las librerías de libGDX y cualquier otra dependencia estén correctamente configuradas en el `Build Path` del proyecto.
 - Para agregar librerías manualmente:
   - Haga clic derecho en el proyecto en el Explorador de Eclipse.
